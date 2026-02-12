@@ -15,7 +15,6 @@ fn middleware(request: Request, continue: fn(Request) -> Response) -> Response {
 
 pub fn handler(ctx: Context, request: Request) -> Response {
   use request <- middleware(request)
-
   case wisp.path_segments(request) {
     ["login"] -> login.handle(ctx, request)
     ["hx", ..component_path] -> components.handle(component_path, ctx, request)

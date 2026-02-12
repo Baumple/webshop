@@ -9,6 +9,7 @@ import webshop/router
 
 pub fn main() -> Nil {
   wisp.configure_logger()
+
   let assert Ok(context) = context.new_with_hot_reload()
   let assert Ok(_) =
     wisp_mist.handler(router.handler(context, _), wisp.random_string(64))
