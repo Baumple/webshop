@@ -1,12 +1,11 @@
 import gleam/dynamic/decode
-import gleam/int
-import gleam/list
 import gleam/result
-import gleam/string
 import sqlight.{type Connection}
-import webshop/data/poke_api
-import webshop/error.{type WebshopInitError}
+import wisp
 
+import webshop/data/db/category
+import webshop/data/db/items
+import webshop/error.{type WebshopInitError}
 
 pub type DBResult(a) {
   Found(a)
@@ -14,30 +13,54 @@ pub type DBResult(a) {
   SqlightError(sqlight.Error)
 }
 
+pub fn open() -> Result(Connection, WebshopInitError) {
+  use db <- result.try(
+    sqlight.open("file:pokeshop.db") |> result.map_error(error.DBError),
+  )
+  result.try(init_scheme(db), init_data)
+}
+
 const scheme = "
   CREATE TABLE IF NOT EXISTS categories (
-    id   INTEGER PRIMARY KEY,
-    name TEXT NOT NULL
+    id     INTEGER PRIMARY KEY,
+    name   TEXT NOT NULL,
+    pocket TEXT NOT NULL
   );
   
   CREATE TABLE IF NOT EXISTS category_names (
-    id   INTEGER REFERENCES categories(id),
-    name TEXT NOT NULL
+    category_id INTEGER REFERENCES categories(id),
+    language    TEXT NOT NULL,
+    name        TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS items (
     id           INTEGER PRIMARY KEY,
     name         TEXT NOT NULL,
-    description  TEXT NOT NULL,
     sprite       TEXT NOT NULL,
     category     TEXT NOT NULL    REFERENCES categories(name),
-    manufacturer INTEGER NOT NULL REFERENCES manufacturers(name),
     cost         INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS item_effect_entries (
+    item_id      INTEGER REFERENCES items(id),
+    language     TEXT NOT NULL,
+    effect       TEXT NOT NULL,
+    short_effect TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS item_attributes (
+    item_id   INTEGER REFERENCES items(id),
+    attribute TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS item_names (
-    id   INTEGER REFERENCES items(id),
-    name TEXT NOT NULL
+    item_id INTEGER REFERENCES items(id),
+    name    TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS item_attributes (
+    item_id   INTEGER REFERENCES items(id),
+    attribute TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS customers (
@@ -63,9 +86,11 @@ fn init_scheme(db: Connection) -> Result(Connection, WebshopInitError) {
 }
 
 fn init_data(db: Connection) -> Result(Connection, WebshopInitError) {
-  case sqlight.query("SELECT COUNT (*) FROM items", db, [], decode.int) {
+  case
+    sqlight.query("SELECT COUNT(*) FROM items", db, [], decode.list(decode.int))
+  {
     // no data in database
-    Ok([count]) if count == 0 -> update_database(db)
+    Ok([[count]]) if count == 0 -> update_database(db)
 
     // database has data
     Ok([_]) -> Ok(db)
@@ -78,31 +103,35 @@ fn init_data(db: Connection) -> Result(Connection, WebshopInitError) {
   }
 }
 
+fn clear_database(
+  db: Connection,
+  continue,
+) -> Result(Connection, WebshopInitError) {
+  let stmts =
+    "
+  DELETE FROM categories;
+  DELETE FROM item_names;
+  DELETE FROM item_attributes;
+  DELETE FROM categories;
+  DELETE FROM category_names;
+  DELETE FROM customers;
+  "
+
+  case sqlight.exec(stmts, db) {
+    Ok(_) -> {
+      wisp.log_info("Cleared database.")
+      continue()
+    }
+    Error(err) -> Error(error.DBError(err))
+  }
+}
+
 fn update_database(db: Connection) -> Result(Connection, WebshopInitError) {
-  update_categories(db)
-}
-
-fn update_categories(db: Connection) -> Result(Connection, WebshopInitError) {
-  use categories <- result.try(poke_api.fetch_categories())
-  let insert_category_base = "INSERT INTO categories (id, name) VALUES\n"
-  let statement =
-    echo insert_category_base
-      <> string.join(
-        list.map(categories, fn(c) {
-          "(" <> int.to_string(c.id) <> ", " <> c.name <> ")"
-        }),
-        ",",
-      )
-  sqlight.exec(statement, db)
-  |> result.map_error(error.DBError)
-  |> result.replace(db)
-}
-
-pub fn open() -> Result(Connection, WebshopInitError) {
-  use db <- result.try(
-    sqlight.open("file:pokeshop.db") |> result.map_error(error.DBError),
-  )
-  result.try(init_scheme(db), init_data)
+  wisp.log_info("Updating database.")
+  use <- clear_database(db)
+  use <- category.update_categories(db)
+  use <- items.update_items(db)
+  todo
 }
 
 const username_password_query = "

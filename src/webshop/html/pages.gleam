@@ -1,5 +1,6 @@
 import lustre/attribute.{attribute}
-import lustre/element/html
+import lustre/element
+import lustre/element/html.{text}
 import webshop/html/layout
 
 pub fn index() -> String {
@@ -13,27 +14,29 @@ pub fn index() -> String {
   |> layout.layout("Webshop")
 }
 
+fn input_field(
+  placeholder placeholder: String,
+  name name: String,
+  type_ type_: String,
+) -> element.Element(a) {
+  html.input([
+    attribute.placeholder(placeholder),
+    attribute.name(name),
+    attribute.type_(type_),
+  ])
+}
+
 pub fn login() -> String {
   [
     html.h1([], [html.text("Hello - Please log in")]),
     html.form([attribute.action("/login"), attribute.method("post")], [
-      html.input([
-        attribute.placeholder("Nutzername"),
-        attribute.value(""),
-        attribute.name("username"),
-        attribute.type_("text"),
-      ]),
-      html.input([
-        attribute.placeholder("Passwort"),
-        attribute.value(""),
-        attribute.name("password"),
-        attribute.type_("password"),
-      ]),
-      html.button([attribute.type_("submit")], [html.text("Jap")]),
+      input_field(placeholder: "Nutzername", name: "username", type_: "text"),
+      input_field(placeholder: "Passwort", name: "password", type_: "password"),
+      html.button([attribute.type_("submit")], [html.text("Einloggen")]),
     ]),
     html.button(
       [attribute("hx-get", "/hx/other_button"), attribute.type_("button")],
-      [],
+      [text("Load button")],
     ),
   ]
   |> layout.layout("Webshop - Login")
