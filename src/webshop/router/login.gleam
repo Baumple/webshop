@@ -1,12 +1,11 @@
 import argus
-import gleam/bit_array
 import gleam/list
 import gleam/result
 import webshop/data/db
-import webshop/error
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
+import webshop/html/pages
 
 pub fn handle(ctx: Context, request: Request) -> Response {
   use formdata <- wisp.require_form(request)
@@ -24,17 +23,17 @@ pub fn handle(ctx: Context, request: Request) -> Response {
 
 fn perform_login(ctx: Context, username: String, password: String) -> Response {
   case db.get_username_password_hash(ctx.db, username) {
-    Error(error.InvalidUsername) -> invalid_login(ctx)
-    Error(error.DBError(err)) -> {
-      wisp.log_critical("Database error: " <> err.message)
-      wisp.internal_server_error()
-    }
-    Ok(hash) -> {
+    db.NotFound -> invalid_login(ctx)
+    db.Found(hash) -> {
       let assert Ok(is_valid) = argus.verify(hash, password)
       case is_valid {
         True -> create_session(ctx)
         False -> invalid_login(ctx)
       }
+    }
+    db.SqlightError(err) -> {
+      wisp.log_critical("Database error: " <> err.message)
+      wisp.internal_server_error()
     }
   }
 
@@ -42,9 +41,10 @@ fn perform_login(ctx: Context, username: String, password: String) -> Response {
 }
 
 fn create_session(ctx: context.Context) -> Response {
+  todo
 }
 
-fn invalid_login(ctx: context.Context) -> Response {
+fn invalid_login(_ctx: context.Context) -> Response {
   wisp.ok()
-  |> wisp.html_body(ctx.invalid_login_page())
+  |> wisp.html_body(pages.invalid_login())
 }

@@ -1,6 +1,7 @@
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
+import webshop/html/pages
 import webshop/router/components
 import webshop/router/login
 
@@ -26,14 +27,14 @@ pub fn handler(ctx: Context, request: Request) -> Response {
 /// confirms whether the user has a valid session id, 
 /// otherwise prompts them to log in/create an account
 fn confirm_logged_in(
-  ctx: Context,
+  _ctx: Context,
   request: Request,
   continue: fn(String) -> Response,
 ) -> Response {
   case wisp.get_cookie(request, "SESSIONID", wisp.Signed) {
     Error(Nil) ->
       wisp.ok()
-      |> wisp.html_body(ctx.login_page())
+      |> wisp.html_body(pages.login())
 
     Ok(session_id) -> continue(session_id)
   }
@@ -41,5 +42,5 @@ fn confirm_logged_in(
 
 fn handle_home_page(ctx: Context, request: Request) -> Response {
   use _session_id <- confirm_logged_in(ctx, request)
-  wisp.ok() |> wisp.html_body(ctx.home_page())
+  wisp.ok() |> wisp.html_body(pages.index())
 }

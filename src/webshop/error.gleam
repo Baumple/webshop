@@ -1,6 +1,9 @@
+import gleam/json
+import gleam/httpc
 import sqlight
 
-pub type WebshopError {
+pub type WebshopInitError {
   DBError(sqlight.Error)
-  InvalidUsername
+  HttpcError(httpc.HttpError)
+  ParseError(json.DecodeError)
 }
