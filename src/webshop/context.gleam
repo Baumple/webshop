@@ -12,5 +12,6 @@ pub type Context {
 /// Opens a database connection and creates a new context record
 pub fn new() -> Result(Context, error.WebshopInitError) {
   db.open()
+  // |> result.try(db.initialize_data)
   |> result.map(Context(db: _))
 }

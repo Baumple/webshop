@@ -17,7 +17,11 @@ pub fn open() -> Result(Connection, WebshopInitError) {
   use db <- result.try(
     sqlight.open("file:pokeshop.db") |> result.map_error(error.DBError),
   )
-  result.try(init_scheme(db), init_data)
+  init_scheme(db)
+}
+
+pub fn initialize_data(db: Connection) -> Result(Connection, WebshopInitError) {
+  init_data(db)
 }
 
 const scheme = "
