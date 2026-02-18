@@ -28,7 +28,7 @@ const scheme = "
   );
   
   CREATE TABLE IF NOT EXISTS category_names (
-    category_id INTEGER REFERENCES categories(id),
+    category_id INTEGER NOT NULL REFERENCES categories(id),
     language    TEXT NOT NULL,
     name        TEXT NOT NULL
   );
@@ -37,30 +37,25 @@ const scheme = "
     id           INTEGER PRIMARY KEY,
     name         TEXT NOT NULL,
     sprite       TEXT NOT NULL,
-    category     TEXT NOT NULL    REFERENCES categories(name),
+    category     TEXT NOT NULL REFERENCES categories(name),
     cost         INTEGER NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS item_effect_entries (
-    item_id      INTEGER REFERENCES items(id),
+    item_id      INTEGER NOT NULL REFERENCES items(id),
     language     TEXT NOT NULL,
     effect       TEXT NOT NULL,
     short_effect TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS item_attributes (
-    item_id   INTEGER REFERENCES items(id),
+    item_id   INTEGER NOT NULL REFERENCES items(id),
     attribute TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS item_names (
-    item_id INTEGER REFERENCES items(id),
+    item_id INTEGER NOT NULL REFERENCES items(id),
     name    TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS item_attributes (
-    item_id   INTEGER REFERENCES items(id),
-    attribute TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS customers (
@@ -72,7 +67,7 @@ const scheme = "
     postal_code  INTEGER NOT NULL,
     location     TEXT NOT NULL,
     bin          INTEGER NOT NULL,
-    institute    TEXT NOT NULL,
+    institution  TEXT NOT NULL,
     hash         TEXT NOT NULL
   );
 
