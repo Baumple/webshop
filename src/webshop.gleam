@@ -1,11 +1,6 @@
-import cake/adapter/sqlite
-import cake/select
-import cake/where
-import gleam/dynamic/decode
 import gleam/erlang/process
 import gleam/string
 import radiate
-import webshop/data/db
 
 import mist
 import wisp
@@ -42,6 +37,7 @@ pub fn main() -> Nil {
   let assert Ok(_) =
     radiate.new()
     |> radiate.add_dir("src/webshop/html/")
+    |> radiate.add_dir("src/webshop/router/")
     |> radiate.start
   case context.new() {
     Error(err) -> handle_startup_error(err)

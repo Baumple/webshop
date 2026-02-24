@@ -1,27 +1,51 @@
 import gleam/int
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{text}
 
 import webshop/html/component_states/register_state.{type RegisterState}
 
-fn validated_text_input(
+pub type ComponentState {
+  /// Component contains valid data
+  Valid
+  /// Component contains invalid data
+  /// Includes a message
+  Invalid(String)
+  /// Initial, unverified component state
+  Pristine
+}
+
+/// - `name` name of the form data entry
+/// - `value` value of input
+/// - `state` component state
+/// - `placeholder` the endpoint to validate component data state
+fn checked_text_input(
   placeholder placeholder: String,
   name name: String,
   value value: String,
-  endpoint valdiate_endpoint: String,
+  state state: ComponentState,
+  endpoint validate_endpoint: String,
 ) -> element.Element(a) {
-  html.input([
-    attribute("hx-post", valdiate_endpoint),
-    attribute("hx-on:change", ""),
-    attribute.type_("text"),
-    attribute.placeholder(placeholder),
-    attribute.name(name),
-    attribute.value(value),
-    attribute.required(True),
-  ])
+  let elements = [
+    html.input([
+      attribute("hx-swap", "outerHTML"),
+      attribute("hx-target", "this"),
+      attribute("hx-post", validate_endpoint),
+      attribute("hx-on:change", ""),
+      attribute.type_("text"),
+      attribute.placeholder(placeholder),
+      attribute.name(name),
+      attribute.value(value),
+      attribute.required(True),
+    ]),
+  ]
+  let elements = case state {
+    Valid | Pristine -> elements
+    Invalid(msg) -> list.append(elements, [html.p([], [text(msg)])])
+  }
+  html.div([], elements)
 }
 
 fn text_input(
@@ -40,14 +64,13 @@ fn text_input(
 
 pub fn password_input(
   value value: String,
-  endpoint validate_endpoint: String,
-  error error: Option(String),
+  state state: ComponentState,
 ) -> element.Element(a) {
   let elements = [
     html.input([
       attribute("hx-swap", "outerHTML"),
       attribute("hx-target", "#password"),
-      attribute("hx-post", validate_endpoint),
+      attribute("hx-post", "/users/check/password"),
       attribute("hx-on:change", ""),
       attribute.type_("password"),
       attribute.placeholder("Passwort"),
@@ -57,12 +80,28 @@ pub fn password_input(
     ]),
   ]
 
-  let elements = case error {
-    Some(msg) -> list.append(elements, [html.p([], [text(msg)])])
-    None -> elements
+  let elements = case state {
+    Invalid(msg) -> list.append(elements, [html.p([], [text(msg)])])
+    _ -> elements
   }
 
   html.div([attribute.id("password")], elements)
+}
+
+pub fn username_input(
+  username username: String,
+  state state: ComponentState,
+) -> element.Element(a) {
+  let elements = [
+    checked_text_input(
+      placeholder: "Nutzername",
+      name: "username",
+      value: username,
+      state:,
+      endpoint: "/users/check/username",
+    ),
+  ]
+  html.div([attribute.id("username_input")], elements)
 }
 
 fn user_info(
@@ -70,25 +109,42 @@ fn user_info(
   password password: String,
 ) -> element.Element(a) {
   html.div([], [
-    validated_text_input(
-      placeholder: "Nutzername",
-      name: "username",
-      value: username,
-      endpoint: "/register/username",
-    ),
-    password_input(value: password, endpoint: "/register/password", error: None),
+    username_input(username, Pristine),
+    password_input(value: password, state: Pristine),
   ])
 }
 
-fn user_name(
-  name name: String,
-  surname surname: String,
-  error error: Option(String),
-) -> element.Element(a) {
+fn user_name(name name: String, surname surname: String) -> element.Element(a) {
   html.div([], [
     text_input("Vorname", "name", name),
     text_input("Nachname", "surname", surname),
   ])
+}
+
+pub fn postal_code_input(
+  postal_code: String,
+  state: ComponentState,
+) -> element.Element(a) {
+  checked_text_input(
+    placeholder: "Postleitzahl",
+    name: "postal_code",
+    value: postal_code,
+    state:,
+    endpoint: "/users/check/postal_code",
+  )
+}
+
+pub fn house_number_input(
+  value: String,
+  state: ComponentState,
+) -> element.Element(a) {
+  checked_text_input(
+    placeholder: "Hausnummer",
+    name: "house_number",
+    value:,
+    state:,
+    endpoint: "/users/check/house_number",
+  )
 }
 
 fn user_address(
@@ -96,26 +152,26 @@ fn user_address(
   house_number house_number: String,
   postal_code postal_code: String,
   location location: String,
-  error error: Option(String),
 ) -> element.Element(a) {
   html.div([], [
     text_input("Straße", "street", street),
-    text_input("Hausnummer", "house_number", house_number),
-    text_input("Postleitzahl", "postal_code", postal_code),
+    house_number_input(house_number, Pristine),
+    postal_code_input(postal_code, Pristine),
     text_input("Ort", "Location", location),
   ])
 }
 
 fn bank_information(
   bin bin: String,
-  error error: Option(String),
+  state state: ComponentState,
 ) -> element.Element(a) {
   html.div([], [
-    validated_text_input(
+    checked_text_input(
       "Bankidentifikationsnummer",
       "bin",
       bin,
-      "/register/bin",
+      state,
+      "/users/check/bin",
     ),
   ])
 }
@@ -150,7 +206,7 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
 
       html.br([]),
 
-      user_name(name: state.name, surname: state.surname, error: None),
+      user_name(name: state.name, surname: state.surname),
 
       html.br([]),
 
@@ -159,12 +215,11 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
         house_number: house_number,
         postal_code: postal_code,
         location: state.location,
-        error: None,
       ),
 
       html.br([]),
 
-      bank_information(bin, None),
+      bank_information(bin, Pristine),
 
       html.br([]),
 

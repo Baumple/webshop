@@ -47,7 +47,9 @@ pub fn validated(state: RegisterState) -> Result(RegisterState, RegisterState) {
 }
 
 pub fn is_valid_password(pwd: String) -> Bool {
-  !string.starts_with(pwd, " ") && !string.ends_with(pwd, " ")
+  !string.starts_with(pwd, " ")
+  && !string.ends_with(pwd, " ")
+  && string.length(pwd) >= 8
 }
 
 pub fn is_valid_postal_code(pc: Option(Int)) -> Bool {
