@@ -1,6 +1,11 @@
+import cake/adapter/sqlite
+import cake/insert
 import gleam/dynamic/decode
+import gleam/list
+import gleam/option
 import gleam/result
 import sqlight.{type Connection}
+import webshop/data/types.{type Item}
 import wisp
 
 import webshop/data/db/category
@@ -152,6 +157,7 @@ pub fn get_username_password_hash(
     _ -> panic as "Invalid sql data."
   }
 }
+
 
 pub fn insert_session() {
   todo

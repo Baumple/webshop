@@ -45,6 +45,5 @@ fn create_session(ctx: context.Context) -> Response {
 }
 
 fn invalid_login(_ctx: context.Context) -> Response {
-  wisp.ok()
-  |> wisp.html_body(pages.invalid_login())
+  wisp.html_response(pages.invalid_login(), 200)
 }

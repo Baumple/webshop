@@ -26,21 +26,19 @@ pub fn handler(ctx: Context, request: Request) -> Response {
 
 /// confirms whether the user has a valid session id, 
 /// otherwise prompts them to log in/create an account
-fn confirm_logged_in(
+fn assert_logged_in(
   _ctx: Context,
   request: Request,
   continue: fn(String) -> Response,
 ) -> Response {
   case wisp.get_cookie(request, "SESSIONID", wisp.Signed) {
-    Error(Nil) ->
-      wisp.ok()
-      |> wisp.html_body(pages.login())
+    Error(Nil) -> wisp.html_response(pages.login(), 200)
 
     Ok(session_id) -> continue(session_id)
   }
 }
 
 fn handle_home_page(ctx: Context, request: Request) -> Response {
-  use _session_id <- confirm_logged_in(ctx, request)
-  wisp.ok() |> wisp.html_body(pages.index())
+  use _session_id <- assert_logged_in(ctx, request)
+  wisp.html_response(pages.index(), 200)
 }

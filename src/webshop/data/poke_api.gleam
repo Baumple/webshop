@@ -18,17 +18,19 @@ const endpoint_item_categories = "item-category"
 
 const endpoint_items = "item"
 
-type ResourceUrl =
-  String
+type ResourceEntry {
+  ResourceEntry(name: String, url: String)
+}
 
-fn resource_entry_decoder() -> decode.Decoder(ResourceUrl) {
+fn resource_entry_decoder() -> decode.Decoder(ResourceEntry) {
   use url <- decode.field("url", decode.string)
-  decode.success(url)
+  use name <- decode.field("name", decode.string)
+  decode.success(ResourceEntry(name:, url:))
 }
 
 fn fetch_resource_entries(
   resource: String,
-) -> Result(List(ResourceUrl), WebshopInitError) {
+) -> Result(List(ResourceEntry), WebshopInitError) {
   let assert Ok(uri) = uri.parse(base_url <> resource <> "?limit=10000")
   let assert Ok(req) = request.from_uri(uri)
   use resp <- result.try(httpc.send(req) |> result.map_error(error.HttpcError))
@@ -37,7 +39,7 @@ fn fetch_resource_entries(
 
 fn parse_resource_entries(
   resp: response.Response(String),
-) -> Result(List(ResourceUrl), WebshopInitError) {
+) -> Result(List(ResourceEntry), WebshopInitError) {
   let decoder = {
     use results <- decode.field(
       "results",
@@ -49,32 +51,30 @@ fn parse_resource_entries(
   |> result.map_error(error.ParseError)
 }
 
-fn fetch_resource_from_url(
+fn fetch_resource(
   decoder: decode.Decoder(a),
-  url: String,
+  resource: ResourceEntry,
 ) -> Result(a, WebshopInitError) {
-  let assert Ok(uri) = uri.parse(url)
+  let assert Ok(uri) = uri.parse(resource.url)
   let assert Ok(req) = request.from_uri(uri)
-
   use resp <- result.try(httpc.send(req) |> result.map_error(error.HttpcError))
   json.parse(resp.body, decoder) |> result.map_error(error.ParseError)
 }
 
-type Message(a) {
+type FetchMessage(a) {
   Success(List(a))
   Failure(WebshopInitError)
 }
 
-fn fetch_resources(
+/// Spawns multiple processes which fetch the data in parallel batches
+fn parallel_fetch_resources(
   resource: String,
   decoder: decode.Decoder(a),
 ) -> Result(List(a), WebshopInitError) {
   use entries <- result.try(fetch_resource_entries(resource))
-  let entry_count = echo list.length(entries)
+  let entry_count = list.length(entries)
   let process_count = 10
   let entries_per_process = entry_count / process_count
-
-  let chunked_entries = list.sized_chunk(entries, entries_per_process)
 
   let subject = process.new_subject()
   let assert Ok(started) =
@@ -83,10 +83,11 @@ fn fetch_resources(
     |> actor.start()
   let accumulator = started.data
 
+  let chunked_entries = list.sized_chunk(entries, entries_per_process)
   list.map(chunked_entries, fn(entries) {
     process.spawn(fn() {
       let result =
-        list.map(entries, fetch_resource_from_url(decoder, _))
+        list.map(entries, fetch_resource(decoder, _))
         |> result.all()
       case result {
         Ok(res) -> actor.send(accumulator, Success(res))
@@ -95,10 +96,11 @@ fn fetch_resources(
     })
   })
 
+  // wait until all fetching processes concluded or there was an error
   process.receive_forever(subject)
 }
 
-type ActorState(a) {
+type FetchState(a) {
   ActorState(
     process_count: Int,
     entries: List(a),
@@ -107,9 +109,9 @@ type ActorState(a) {
 }
 
 fn handle(
-  state: ActorState(a),
-  msg: Message(a),
-) -> actor.Next(ActorState(a), Message(a)) {
+  state: FetchState(a),
+  msg: FetchMessage(a),
+) -> actor.Next(FetchState(a), FetchMessage(a)) {
   case msg {
     Success(entries) -> {
       let new_process_count = state.process_count - 1
@@ -123,23 +125,23 @@ fn handle(
             ),
           )
         True -> {
-          actor.send(state.subject, Ok(state.entries))
+          actor.send(state.subject, Ok(list.append(state.entries, entries)))
           actor.stop()
         }
       }
     }
     Failure(err) -> {
       actor.send(state.subject, Error(err))
-      actor.stop()
+      actor.stop_abnormal("An error occurred while fetching data.")
     }
   }
 }
 
 // TODO: pass callback parameter so items can be inserted on the fly into the database
 pub fn fetch_item_categories() -> Result(List(Category), WebshopInitError) {
-  fetch_resources(endpoint_item_categories, types.category_decoder())
+  parallel_fetch_resources(endpoint_item_categories, types.category_decoder())
 }
 
 pub fn fetch_items() -> Result(List(Item), WebshopInitError) {
-  fetch_resources(endpoint_items, types.item_decoder())
+  parallel_fetch_resources(endpoint_items, types.item_decoder())
 }

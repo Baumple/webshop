@@ -14,7 +14,7 @@ pub fn handle(
   _request: wisp.Request,
 ) -> wisp.Response {
   case path {
-    ["other_button"] -> wisp.ok() |> wisp.html_body(other_button())
+    ["other_button"] -> wisp.html_response(other_button(), 200)
     _ -> wisp.not_found()
   }
 }
