@@ -1,6 +1,8 @@
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{text}
+import webshop/html/component_states as cs
+import webshop/html/components
 import webshop/html/layout
 
 pub fn index() -> String {
@@ -38,6 +40,8 @@ pub fn login() -> String {
       [attribute("hx-get", "/hx/other_button"), attribute.type_("button")],
       [text("Load button")],
     ),
+    html.hr([]),
+    components.register_form(cs.new_register_state()),
   ]
   |> layout.layout("Webshop - Login")
 }
@@ -45,4 +49,11 @@ pub fn login() -> String {
 pub fn invalid_login() -> String {
   [html.p([], [html.text("Nutzername oder Passwort falsch.")])]
   |> layout.layout("Webshop - Invalid login")
+}
+
+pub fn register() -> String {
+  [
+    components.register_form(cs.new_register_state()),
+  ]
+  |> layout.layout("WebShop - Register")
 }

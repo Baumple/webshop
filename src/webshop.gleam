@@ -1,5 +1,7 @@
+import argus
 import gleam/erlang/process
 import gleam/string
+import radiate
 
 import mist
 import wisp
@@ -33,6 +35,10 @@ fn start_server(context: context.Context) -> Nil {
 
 pub fn main() -> Nil {
   wisp.configure_logger()
+  let assert Ok(_) =
+    radiate.new()
+    |> radiate.add_dir("src/webshop/html/")
+    |> radiate.start
   case context.new() {
     Error(err) -> handle_startup_error(err)
     Ok(context) -> start_server(context)

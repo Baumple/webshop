@@ -63,7 +63,7 @@ const scheme = "
   );
 
   CREATE TABLE IF NOT EXISTS customers (
-    username     TEXT PRIMARY KEY,
+    username     TEXT NOT NULL PRIMARY KEY,
     name         TEXT NOT NULL,
     surname      TEXT NOT NULL,
     street       TEXT NOT NULL,
