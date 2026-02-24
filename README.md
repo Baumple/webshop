@@ -45,3 +45,6 @@ SQL-Injektion ausgeschlossen werden kann.
 
 Die Daten für die Items beziehe ich dabei von der open-source api
 "https://pokeapi.co".
+
+Passwörter werden durch einen argon2-Algorithmus verschlüsselt, da es dafür
+die bequeme Library `argus` gibt.

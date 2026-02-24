@@ -1,3 +1,5 @@
+import webshop/router/register
+import webshop/router/validate
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
@@ -18,7 +20,8 @@ pub fn handler(ctx: Context, request: Request) -> Response {
   use request <- middleware(request)
   case wisp.path_segments(request) {
     ["login"] -> login.handle(ctx, request)
-    ["hx", ..component_path] -> components.handle(component_path, ctx, request)
+    ["register", ..] -> register.handle(ctx, request)
+    ["validate", field] -> validate.handle(ctx, request, field)
     [] -> handle_home_page(ctx, request)
     _ -> wisp.not_found()
   }

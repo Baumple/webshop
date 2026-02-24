@@ -1,7 +1,7 @@
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{text}
-import webshop/html/component_states as cs
+import webshop/html/component_states/register_state
 import webshop/html/components
 import webshop/html/layout
 
@@ -41,7 +41,7 @@ pub fn login() -> String {
       [text("Load button")],
     ),
     html.hr([]),
-    components.register_form(cs.new_register_state()),
+    components.register_form(register_state.new()),
   ]
   |> layout.layout("Webshop - Login")
 }
@@ -53,7 +53,7 @@ pub fn invalid_login() -> String {
 
 pub fn register() -> String {
   [
-    components.register_form(cs.new_register_state()),
+    components.register_form(register_state.new()),
   ]
-  |> layout.layout("WebShop - Register")
+  |> layout.layout("Register - Webshop")
 }

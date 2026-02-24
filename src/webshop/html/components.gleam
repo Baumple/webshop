@@ -1,10 +1,28 @@
 import gleam/int
+import gleam/list
 import gleam/option.{type Option, None, Some}
-import lustre/attribute
+import lustre/attribute.{attribute}
 import lustre/element
-import lustre/element/html
+import lustre/element/html.{text}
 
-import webshop/html/component_states.{type RegisterState}
+import webshop/html/component_states/register_state.{type RegisterState}
+
+fn validated_text_input(
+  placeholder placeholder: String,
+  name name: String,
+  value value: String,
+  endpoint valdiate_endpoint: String,
+) -> element.Element(a) {
+  html.input([
+    attribute("hx-post", valdiate_endpoint),
+    attribute("hx-on:change", ""),
+    attribute.type_("text"),
+    attribute.placeholder(placeholder),
+    attribute.name(name),
+    attribute.value(value),
+    attribute.required(True),
+  ])
+}
 
 fn text_input(
   placeholder: String,
@@ -16,30 +34,49 @@ fn text_input(
     attribute.placeholder(placeholder),
     attribute.name(name),
     attribute.value(value),
+    attribute.required(True),
   ])
 }
 
-fn password_input(
-  placeholder placeholder: String,
-  name name: String,
+pub fn password_input(
   value value: String,
+  endpoint validate_endpoint: String,
+  error error: Option(String),
 ) -> element.Element(a) {
-  html.input([
-    attribute.type_("password"),
-    attribute.placeholder(placeholder),
-    attribute.value(value),
-    attribute.name(name),
-  ])
+  let elements = [
+    html.input([
+      attribute("hx-swap", "outerHTML"),
+      attribute("hx-target", "#password"),
+      attribute("hx-post", validate_endpoint),
+      attribute("hx-on:change", ""),
+      attribute.type_("password"),
+      attribute.placeholder("Passwort"),
+      attribute.value(value),
+      attribute.name("password"),
+      attribute.required(True),
+    ]),
+  ]
+
+  let elements = case error {
+    Some(msg) -> list.append(elements, [html.p([], [text(msg)])])
+    None -> elements
+  }
+
+  html.div([attribute.id("password")], elements)
 }
 
 fn user_info(
   username username: String,
   password password: String,
-  error error: Option(String),
 ) -> element.Element(a) {
   html.div([], [
-    text_input("Nutzername", "username", username),
-    password_input(placeholder: "Passwort", name: "password", value: password),
+    validated_text_input(
+      placeholder: "Nutzername",
+      name: "username",
+      value: username,
+      endpoint: "/register/username",
+    ),
+    password_input(value: password, endpoint: "/register/password", error: None),
   ])
 }
 
@@ -74,7 +111,12 @@ fn bank_information(
   error error: Option(String),
 ) -> element.Element(a) {
   html.div([], [
-    text_input("Bankidentifikationsnummer", "bin", bin),
+    validated_text_input(
+      "Bankidentifikationsnummer",
+      "bin",
+      bin,
+      "/register/bin",
+    ),
   ])
 }
 
@@ -100,14 +142,18 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
 
   html.form(
     [
-      attribute.method("/post"),
+      attribute.method("POST"),
       attribute.action("/register"),
     ],
     [
-      user_info(username: state.username, password: state.password, error: None),
+      user_info(username: state.username, password: state.password),
+
       html.br([]),
+
       user_name(name: state.name, surname: state.surname, error: None),
+
       html.br([]),
+
       user_address(
         street: state.street,
         house_number: house_number,
@@ -115,11 +161,17 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
         location: state.location,
         error: None,
       ),
+
       html.br([]),
+
       bank_information(bin, None),
+
       html.br([]),
+
       user_affiliation(state.institution),
+
       html.br([]),
+
       html.input([attribute.type_("submit")]),
     ],
   )

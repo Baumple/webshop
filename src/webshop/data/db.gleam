@@ -1,3 +1,6 @@
+import cake/adapter/sqlite
+import cake/select
+import cake/where
 import gleam/dynamic/decode
 import gleam/result
 import sqlight.{type Connection}
@@ -159,4 +162,25 @@ pub fn get_username_password_hash(
 
 pub fn insert_session() {
   todo
+}
+
+pub fn username_exists(
+  db: Connection,
+  username: String,
+) -> Result(Bool, sqlight.Error) {
+  let res =
+    select.new()
+    |> select.from_table("customers")
+    |> select.select_col("username")
+    |> select.where(where.eq(where.col("username"), where.string(username)))
+    |> select.limit(1)
+    |> select.to_query
+    |> sqlite.run_read_query(decode.dynamic, db)
+
+  case res {
+    Ok([]) -> Ok(False)
+    Ok([_]) -> Ok(True)
+    Ok(_) -> panic as "Multiple users with same username"
+    Error(err) -> Error(err)
+  }
 }
