@@ -28,6 +28,7 @@ fn assert_register_data(
   continue: fn(RegisterState) -> Response,
 ) -> Response {
   use formdata <- wisp.require_form(request)
+  echo formdata
   let result = {
     let get = fn(key, continue: fn(String) -> Result(RegisterState, Nil)) {
       case list.key_find(formdata.values, key) {
@@ -55,21 +56,23 @@ fn assert_register_data(
     use bin <- get("bin")
     let bin = parse_bin(bin)
 
-    use institution <- get("inst")
+    use institution <- get("institution")
     use password <- get("password")
 
-    Ok(RegisterState(
-      name:,
-      username:,
-      surname:,
-      street:,
-      house_number:,
-      postal_code:,
-      location:,
-      bin:,
-      institution:,
-      password:,
-    ))
+    Ok(
+      echo RegisterState(
+        name:,
+        username:,
+        surname:,
+        street:,
+        house_number:,
+        postal_code:,
+        location:,
+        bin:,
+        institution:,
+        password:,
+      ),
+    )
   }
 
   case result {

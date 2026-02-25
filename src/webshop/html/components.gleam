@@ -31,7 +31,7 @@ fn checked_text_input(
   let elements = [
     html.input([
       attribute("hx-swap", "outerHTML"),
-      attribute("hx-target", "this"),
+      attribute("hx-target", "closest div"),
       attribute("hx-post", validate_endpoint),
       attribute("hx-on:change", ""),
       attribute.type_("text"),
@@ -69,7 +69,7 @@ pub fn password_input(
   let elements = [
     html.input([
       attribute("hx-swap", "outerHTML"),
-      attribute("hx-target", "#password"),
+      attribute("hx-target", "closest #password"),
       attribute("hx-post", "/users/check/password"),
       attribute("hx-on:change", ""),
       attribute.type_("password"),
@@ -92,16 +92,13 @@ pub fn username_input(
   username username: String,
   state state: ComponentState,
 ) -> element.Element(a) {
-  let elements = [
-    checked_text_input(
-      placeholder: "Nutzername",
-      name: "username",
-      value: username,
-      state:,
-      endpoint: "/users/check/username",
-    ),
-  ]
-  html.div([attribute.id("username_input")], elements)
+  checked_text_input(
+    placeholder: "Nutzername",
+    name: "username",
+    value: username,
+    state:,
+    endpoint: "/users/check/username",
+  )
 }
 
 fn user_info(
@@ -157,23 +154,21 @@ fn user_address(
     text_input("Straße", "street", street),
     house_number_input(house_number, Pristine),
     postal_code_input(postal_code, Pristine),
-    text_input("Ort", "Location", location),
+    text_input("Ort", "location", location),
   ])
 }
 
-fn bank_information(
+pub fn bank_information(
   bin bin: String,
   state state: ComponentState,
 ) -> element.Element(a) {
-  html.div([], [
-    checked_text_input(
-      "Bankidentifikationsnummer",
-      "bin",
-      bin,
-      state,
-      "/users/check/bin",
-    ),
-  ])
+  checked_text_input(
+    "Bankidentifikationsnummer",
+    "bin",
+    bin,
+    state,
+    "/users/check/bin",
+  )
 }
 
 fn user_affiliation(institution institution: String) -> element.Element(a) {
@@ -199,7 +194,7 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
   html.form(
     [
       attribute.method("POST"),
-      attribute.action("/register"),
+      attribute.action("/users"),
     ],
     [
       user_info(username: state.username, password: state.password),

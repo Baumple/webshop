@@ -1,7 +1,7 @@
+import gleam/int
 import gleam/option.{type Option, None, Some}
 import gleam/string
-
-import webshop/context.{type Context}
+import sqlight
 
 pub type RegisterState {
   RegisterState(
@@ -33,7 +33,13 @@ pub fn new() -> RegisterState {
   )
 }
 
-pub fn validated(state: RegisterState) -> Result(RegisterState, RegisterState) {
+pub type ValidationState {
+  Valid(RegisterState)
+  Invalid
+  SQLError(sqlight.Error)
+}
+
+pub fn validated(state: RegisterState) -> ValidationState {
   case
     is_valid_username(state.username)
     && is_valid_house_number(state.house_number)
@@ -41,8 +47,8 @@ pub fn validated(state: RegisterState) -> Result(RegisterState, RegisterState) {
     && is_valid_bin(state.bin)
     && is_valid_password(state.password)
   {
-    True -> Ok(state)
-    False -> Error(state)
+    True -> Valid(state)
+    False -> Invalid
   }
 }
 
@@ -72,7 +78,29 @@ pub fn is_valid_username(username: String) -> Bool {
 
 pub fn is_valid_bin(bin: Option(Int)) -> Bool {
   case bin {
-    Some(_) -> True
+    Some(x) -> {
+      let s = int.to_string(x) |> string.length
+      s == 6 || s == 8
+    }
+
     None -> False
   }
+}
+
+pub fn is_valid_bin_string(bin: String) -> Bool {
+  int.parse(bin)
+  |> option.from_result
+  |> is_valid_bin
+}
+
+pub fn is_valid_postal_code_string(pc: String) -> Bool {
+  int.parse(pc)
+  |> option.from_result
+  |> is_valid_postal_code
+}
+
+pub fn is_valid_house_number_string(house_number: String) -> Bool {
+  int.parse(house_number)
+  |> option.from_result
+  |> is_valid_house_number
 }
