@@ -1,85 +1,118 @@
+import argus
+import cake/adapter/sqlite
+import cake/insert
+import gleam/dynamic/decode
 import gleam/http
 import gleam/int
 import gleam/list
-import gleam/option
 import gleam/result
+import gleam/string
+import lustre/element
+import webshop/error
+import webshop/html/components
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
-import webshop/html/component_states/register_state.{
-  type RegisterState, RegisterState,
-}
+import webshop/html/component_states/register_state
 import webshop/html/pages
 import webshop/router/users/validate
 
-fn parse_bin(s: String) -> option.Option(Int) {
+fn parse_bin(s: String) -> Result(Int, Nil) {
+  let l = string.length(s)
   int.parse(s)
   |> result.try(fn(x) {
-    case x == 6 || x == 8 {
+    case l == 6 || l == 8 {
       True -> Ok(x)
       False -> Error(Nil)
     }
   })
-  |> option.from_result
 }
 
-fn assert_register_data(
+type RegisterInfo {
+  RegisterInfo(
+    username: String,
+    name: String,
+    surname: String,
+    street: String,
+    house_number: Int,
+    postal_code: Int,
+    location: String,
+    bin: Int,
+    institution: String,
+    password: String,
+  )
+}
+
+fn require_register_data(
   request: Request,
-  continue: fn(RegisterState) -> Response,
+  continue: fn(RegisterInfo) -> Response,
 ) -> Response {
   use formdata <- wisp.require_form(request)
   echo formdata
   let result = {
-    let get = fn(key, continue: fn(String) -> Result(RegisterState, Nil)) {
+    let get = fn(key, continue: fn(String) -> Result(RegisterInfo, String)) {
       case list.key_find(formdata.values, key) {
         Ok(data) -> continue(data)
-        Error(_) -> Error(Nil)
+        Error(_) -> Error("'" <> key <> "' missing")
+      }
+    }
+    let check_validity = fn(s: String, check) -> Result(String, Nil) {
+      case check(s) {
+        True -> Ok(s)
+        False -> Error(Nil)
       }
     }
     use username <- get("username")
+
     use name <- get("name")
     use surname <- get("surname")
+
     use street <- get("street")
 
     use house_number <- get("house_number")
-    let house_number =
-      int.parse(house_number)
-      |> option.from_result
+    use house_number <- result.try(
+      int.parse(house_number) |> result.replace_error("'house_numer' invalid"),
+    )
 
     use postal_code <- get("postal_code")
-    let postal_code =
-      int.parse(postal_code)
-      |> option.from_result
+    use postal_code <- result.try(
+      int.parse(postal_code) |> result.replace_error("'postal_code' invalid"),
+    )
 
     use location <- get("location")
 
     use bin <- get("bin")
-    let bin = parse_bin(bin)
+    use bin <- result.try(
+      parse_bin(bin) |> result.replace_error("'bin' invalid"),
+    )
 
     use institution <- get("institution")
-    use password <- get("password")
 
-    Ok(
-      echo RegisterState(
-        name:,
-        username:,
-        surname:,
-        street:,
-        house_number:,
-        postal_code:,
-        location:,
-        bin:,
-        institution:,
-        password:,
-      ),
+    use password <- get("password")
+    use password <- result.try(
+      check_validity(password, register_state.is_valid_password)
+      |> result.replace_error("password invalid"),
     )
+
+    Ok(RegisterInfo(
+      name:,
+      username:,
+      surname:,
+      street:,
+      house_number:,
+      postal_code:,
+      location:,
+      bin:,
+      institution:,
+      password:,
+    ))
   }
 
   case result {
     Ok(state) -> continue(state)
-    Error(Nil) -> {
-      wisp.log_notice("Received invalid form data.")
-      wisp.bad_request("Invalid register form data.")
+    Error(s) -> {
+      wisp.log_notice("Received invalid form data: " <> s)
+      wisp.bad_request("Invalid register form data: " <> s)
     }
   }
 }
@@ -101,10 +134,74 @@ pub fn handle(ctx: Context, request: Request) -> Response {
 
 fn handle_register(ctx: Context, request: Request) -> Response {
   use <- handle_get(request)
-  use register_info <- assert_register_data(request)
-  todo
+  use register_info <- require_register_data(request)
+  perform_register(ctx, register_info)
 }
 
-fn perform_register(ctx: Context, state: RegisterState) -> Response {
-  todo
+fn hash_password(password, continue) -> Response {
+  let hash =
+    argus.hasher()
+    |> argus.hash(password, argus.gen_salt())
+  case hash {
+    Ok(hash) -> continue(hash)
+    Error(err) -> {
+      wisp.log_critical("Could not hash password: " <> string.inspect(err))
+      wisp.internal_server_error()
+    }
+  }
+}
+
+fn perform_register(ctx: Context, state: RegisterInfo) -> Response {
+  let RegisterInfo(
+    username:,
+    name:,
+    surname:,
+    street:,
+    house_number:,
+    postal_code:,
+    location:,
+    bin:,
+    institution:,
+    password:,
+  ) = state
+  use hash <- hash_password(password)
+  let res =
+    insert.from_values(
+      table_name: "customers",
+      columns: [
+        "username",
+        "name",
+        "surname",
+        "street",
+        "house_number",
+        "postal_code",
+        "location",
+        "bin",
+        "institution",
+        "hash",
+      ],
+      values: [
+        insert.row([
+          insert.string(username),
+          insert.string(name),
+          insert.string(surname),
+          insert.string(street),
+          insert.int(house_number),
+          insert.int(postal_code),
+          insert.string(location),
+          insert.int(bin),
+          insert.string(institution),
+          insert.string(hash.encoded_hash),
+        ]),
+      ],
+    )
+    |> insert.to_query
+    |> sqlite.run_write_query(decode.dynamic, ctx.db)
+
+  case res {
+    Ok(_) ->
+      pages.login()
+      |> wisp.html_response(200)
+    Error(err) -> error.log_sql_error(err)
+  }
 }

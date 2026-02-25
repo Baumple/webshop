@@ -51,7 +51,6 @@ fn perform_login(ctx: Context, username: String, password: String) -> Response {
       wisp.internal_server_error()
     }
   }
-  wisp.bad_request("Bad request")
 }
 
 fn create_session(ctx: Context) -> Response {

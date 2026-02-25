@@ -137,7 +137,7 @@ fn update_database(db: Connection) -> Result(Connection, WebshopInitError) {
 }
 
 const username_password_query = "
-  SELECT hash FROM username_password WHERE username = ?
+  SELECT hash FROM customers WHERE username = ?
 "
 
 pub fn get_username_password_hash(
@@ -149,11 +149,11 @@ pub fn get_username_password_hash(
       username_password_query,
       db,
       [sqlight.text(username)],
-      decode.string,
+      decode.list(decode.string),
     )
 
   case res {
-    Ok([hash]) -> Found(hash)
+    Ok([[hash]]) -> Found(hash)
     Ok([]) -> NotFound
     Error(err) -> SqlightError(err)
     _ -> panic as "Invalid sql data."
