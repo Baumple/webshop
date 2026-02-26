@@ -3,27 +3,159 @@ html {
   background: black;
   color: #4AF262;
   text-shadow: rgba(4,175,38,1) 0px 0px 19px;
+  font-size: 1.4rem;
+  height: 100%;
+  padding: 0;
 }
 
 .separator { 
   color: #4AF262;
   background: #4AF262;
+  /* width: 98%; */
 }
 
 header {
   margin-left: 2em;
   display: grid;
-  grid-template-columns: 0.2fr 1fr;
+  grid-template-columns: auto 1fr;
 }
 
-header>h1 {
-  margin-right: 0em;
-  padding-right: 0em;
+header>div {
+  height: 3em;
+  padding: 0em;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+header>div>h1 {
+  padding: 0em;
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-right: 1em;
 }
 
 header>p {
+  margin: 0;
   margin-top: auto;
   margin-bottom: auto;
-  margin-left: 0em;
-  padding-left: 0em;
+  padding: 0em;
+}
+
+main {
+  border-radius: 50px;
+  border: solid 5px;
+  border-color: grey;
+
+  padding: 1em;
+  min-height: 100%;
+}
+
+main>div {
+  width: 80%;
+  margin: auto;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+  align-items: center;
+
+  background-color: #000;
+  height: 2em;
+  height: 100px;
+  clear: both;
+}
+
+a {
+  color: inherit;
+}
+
+a::before {
+  content: "🔗";
+}
+
+h2 {
+  text-decoration: underline;
+}
+
+h3 {
+  margin-bottom: 0em;
+  padding: 0;
+}
+
+.crt {
+  background: linear-gradient(to top, #000000, #000000, #111111, #111111);
+  background-size: cover;
+  background-size: 100% 1%;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.5);
+
+  padding-top: 5px;
+  padding-bottom: 5px;
+
+  margin: 5px;
+  color: inherit;
+}
+
+button {
+  border-bottom: solid 1px;
+  border-bottom-color: #4AF262;
+  cursor: pointer;
+}
+
+.terminal-input {
+  position: relative;
+  display: inline-block;
+  content: ">";
+}
+
+.terminal-input input {
+  padding-left: 20px;
+}
+
+.terminal-input::before {
+  content: ">";
+  position: absolute;
+  top: 47%;
+  transform: translateY(-50%);
+  padding-left: 5px;
+  pointer-events: none;
+}
+
+@media screen {
+  .crt {
+    animation: scanlines infinite 5s linear;
+  }
+  @keyframes scanlines {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 0 100px;
+    }
+  }
+}
+
+.login {
+  text-align: center;
+}
+
+@media screen and (min-width: 400px) {
+  .login {
+    display: grid;
+    grid-template-columns: 1fr 0.01fr 1fr;
+    grid-gap: 2em;
+  }
+}
+
+@media screen and (max-width: 400px) {
+  html {
+    font-size: 0.2rem;
+  }
 }

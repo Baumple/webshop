@@ -4,7 +4,7 @@ import wisp.{type FormData, type Request, type Response}
 
 import webshop/context.{type Context}
 import webshop/html/component_states/register_state
-import webshop/html/components/register_form.{type ComponentState} as comps
+import webshop/html/components/form.{type ComponentState}
 
 pub fn handle_validations(
   ctx: Context,
@@ -18,7 +18,7 @@ pub fn handle_validations(
       validate_field(
         formdata,
         "password",
-        comps.password_input,
+        form.password_input,
         register_state.is_valid_password,
         "Passwort ist ungültig",
       )
@@ -26,7 +26,7 @@ pub fn handle_validations(
       validate_field(
         formdata,
         "bin",
-        comps.bank_information,
+        form.bin_input,
         register_state.is_valid_bin_string,
         "Bankidentifikationsnummer ungültig",
       )
@@ -34,7 +34,7 @@ pub fn handle_validations(
       validate_field(
         formdata,
         "house_number",
-        comps.house_number_input,
+        form.house_number_input,
         register_state.is_valid_house_number_string,
         "Hausnummer ungültig",
       )
@@ -42,7 +42,7 @@ pub fn handle_validations(
       validate_field(
         formdata,
         "postal_code",
-        comps.postal_code_input,
+        form.postal_code_input,
         register_state.is_valid_house_number_string,
         "Postleitzahl ungültig",
       )
@@ -62,8 +62,8 @@ fn validate_field(
     Ok(field) -> {
       let is_valid = is_valid(field)
       case is_valid {
-        True -> comp(field, comps.Valid)
-        False -> comp(field, comps.Invalid(invalid_message))
+        True -> comp(field, form.Valid)
+        False -> comp(field, form.Invalid(invalid_message))
       }
       |> element.to_document_string
       |> wisp.html_response(200)
@@ -89,29 +89,25 @@ fn validate_username(ctx: Context, formdata: FormData) -> Response {
   case register_state.is_valid_username(username) {
     True -> {
       use <- prevent_duplicate_usernames(ctx, username)
-      comps.username_input(
-        username,
-        comps.Invalid("Nutzername nicht verfügbar"),
-      )
+      form.username_input(username, form.Invalid("Nutzername nicht verfügbar"))
       |> element.to_document_string
       |> wisp.html_response(200)
     }
     False ->
-      comps.username_input(
-        username,
-        comps.Invalid("Nutzername nicht verfügbar"),
-      )
+      form.username_input(username, form.Invalid("Nutzername nicht verfügbar"))
       |> element.to_document_string
       |> wisp.html_response(200)
   }
 }
 
+// WARN: NOT IMPLEMENTED
 fn prevent_duplicate_usernames(
   ctx: Context,
   username: String,
   continue: fn() -> Response,
 ) -> Response {
-  comps.username_input(username, comps.Valid)
+  form.username_input(username, form.Valid)
   |> element.to_document_string
   |> wisp.html_response(200)
+  todo as "prevent_duplicate_usernames not implemented"
 }

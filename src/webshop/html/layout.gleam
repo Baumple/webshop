@@ -1,14 +1,31 @@
-import lustre/attribute.{attribute}
+import gleam/option
+import webshop/data/types
+import lustre/attribute.{attribute, class}
 import lustre/element
 import lustre/element/html.{text}
 import webshop/html/components
 
 pub fn header(title: String, subtitle: String) -> element.Element(a) {
-  html.header([], [html.h1([], [text(title)]), html.p([], [text(subtitle)])])
+  html.header([], [
+    html.div([], [html.h1([], [text(title)])]),
+    html.p([], [text(subtitle)]),
+  ])
 }
 
 pub fn footer() -> element.Element(a) {
-  todo
+  html.footer([], [
+    html.p([], [text("Made with 💖 by Linus")]),
+    html.a(
+      [
+        attribute.target("blank"),
+        attribute.href("https://github.com/baumple/webshop"),
+      ],
+      [
+        text("Source Code (Github)"),
+      ],
+    ),
+    html.a([attribute.href("/users/logout")], [text("Log out ➡️")]),
+  ])
 }
 
 pub fn layout(
@@ -26,7 +43,7 @@ pub fn layout(
       html.title([], title),
       html.link([
         attribute.rel("stylesheet"),
-        attribute.href("static/style.css"),
+        attribute.href("/static/style.css"),
       ]),
       html.script(
         [
@@ -40,7 +57,9 @@ pub fn layout(
     html.body([], [
       header(title, subtitle),
       components.separator(),
-      html.main([], body),
+      html.main([class("crt")], body),
+      components.separator(),
+      footer(),
     ]),
   ])
   |> element.to_document_string

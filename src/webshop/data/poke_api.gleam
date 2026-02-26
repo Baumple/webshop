@@ -70,7 +70,7 @@ fn fetch_resources(
   decoder: decode.Decoder(a),
 ) -> Result(List(a), WebshopInitError) {
   use entries <- result.try(fetch_resource_entries(resource))
-  let entry_count = echo list.length(entries)
+  let entry_count = list.length(entries)
   let process_count = 10
   let entries_per_process = entry_count / process_count
 

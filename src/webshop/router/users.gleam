@@ -5,6 +5,7 @@ import gleam/list
 import gleam/result
 import gleam/string
 import webshop/data/db
+import webshop/sessions
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
@@ -12,6 +13,7 @@ import webshop/data/types.{Customer}
 import webshop/error
 import webshop/html/component_states/register_state
 import webshop/html/pages
+import webshop/router/middleware
 import webshop/router/users/validate
 
 fn parse_bin(s: String) -> Result(Int, Nil) {
@@ -45,7 +47,6 @@ fn require_register_data(
   continue: fn(RegisterInfo) -> Response,
 ) -> Response {
   use formdata <- wisp.require_form(request)
-  echo formdata
   let result = {
     let get = fn(key, continue: fn(String) -> Result(RegisterInfo, String)) {
       case list.key_find(formdata.values, key) {
@@ -124,8 +125,17 @@ fn handle_get(request: Request, continue: fn() -> Response) {
 pub fn handle(ctx: Context, request: Request) -> Response {
   case wisp.path_segments(request) {
     ["users"] -> handle_register(ctx, request)
+    ["users", "logout"] -> handle_logout(ctx, request)
     ["users", "check", comp] -> validate.handle_validations(ctx, request, comp)
     _ -> wisp.not_found()
+  }
+}
+
+fn handle_logout(ctx: Context, request: Request) -> Response {
+  use session_id <- middleware.require_session_id(ctx, request)
+  case sessions.remove(ctx.sessions, session_id) {
+    Ok(_) -> pages.login() |> wisp.html_response(200)
+    Error(err) -> error.log_ets_error(err)
   }
 }
 

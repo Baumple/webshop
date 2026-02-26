@@ -17,6 +17,20 @@ pub type ComponentState {
   Pristine
 }
 
+pub fn input_field(
+  placeholder placeholder: String,
+  name name: String,
+  type_ type_: String,
+) -> element.Element(a) {
+  html.div([attribute.class("terminal-input")], [
+    html.input([
+      attribute.placeholder(placeholder),
+      attribute.name(name),
+      attribute.type_(type_),
+    ]),
+  ])
+}
+
 /// - `name` name of the form data entry
 /// - `value` value of input
 /// - `state` component state
@@ -29,23 +43,25 @@ fn checked_text_input(
   endpoint validate_endpoint: String,
 ) -> element.Element(a) {
   let elements = [
-    html.input([
-      attribute("hx-swap", "outerHTML"),
-      attribute("hx-target", "closest div"),
-      attribute("hx-post", validate_endpoint),
-      attribute("hx-on:change", ""),
-      attribute.type_("text"),
-      attribute.placeholder(placeholder),
-      attribute.name(name),
-      attribute.value(value),
-      attribute.required(True),
+    html.div([attribute.class("terminal-input")], [
+      html.input([
+        attribute("hx-swap", "outerHTML"),
+        attribute("hx-target", "closest .input-wrapper"),
+        attribute("hx-post", validate_endpoint),
+        attribute("hx-on:change", ""),
+        attribute.type_("text"),
+        attribute.placeholder(placeholder),
+        attribute.name(name),
+        attribute.value(value),
+        attribute.required(True),
+      ]),
     ]),
   ]
   let elements = case state {
     Valid | Pristine -> elements
     Invalid(msg) -> list.append(elements, [html.p([], [text(msg)])])
   }
-  html.div([], elements)
+  html.div([attribute.class("input-wrapper")], elements)
 }
 
 fn text_input(
@@ -53,12 +69,14 @@ fn text_input(
   name: String,
   value: String,
 ) -> element.Element(a) {
-  html.input([
-    attribute.type_("text"),
-    attribute.placeholder(placeholder),
-    attribute.name(name),
-    attribute.value(value),
-    attribute.required(True),
+  html.div([attribute.class("terminal-input")], [
+    html.input([
+      attribute.type_("text"),
+      attribute.placeholder(placeholder),
+      attribute.name(name),
+      attribute.value(value),
+      attribute.required(True),
+    ]),
   ])
 }
 
@@ -67,16 +85,18 @@ pub fn password_input(
   state state: ComponentState,
 ) -> element.Element(a) {
   let elements = [
-    html.input([
-      attribute("hx-swap", "outerHTML"),
-      attribute("hx-target", "closest #password"),
-      attribute("hx-post", "/users/check/password"),
-      attribute("hx-on:change", ""),
-      attribute.type_("password"),
-      attribute.placeholder("Passwort"),
-      attribute.value(value),
-      attribute.name("password"),
-      attribute.required(True),
+    html.div([attribute.class("terminal-input")], [
+      html.input([
+        attribute("hx-swap", "outerHTML"),
+        attribute("hx-target", "closest .input-wrapper"),
+        attribute("hx-post", "/users/check/password"),
+        attribute("hx-on:change", ""),
+        attribute.type_("password"),
+        attribute.placeholder("Passwort"),
+        attribute.value(value),
+        attribute.name("password"),
+        attribute.required(True),
+      ]),
     ]),
   ]
 
@@ -85,7 +105,13 @@ pub fn password_input(
     _ -> elements
   }
 
-  html.div([attribute.id("password")], elements)
+  html.div(
+    [
+      attribute.id("password"),
+      attribute.class("input-wrapper"),
+    ],
+    elements,
+  )
 }
 
 pub fn username_input(
@@ -106,6 +132,7 @@ fn user_info(
   password password: String,
 ) -> element.Element(a) {
   html.div([], [
+    html.h3([], [text("Anmeldedaten")]),
     username_input(username, Pristine),
     password_input(value: password, state: Pristine),
   ])
@@ -113,6 +140,7 @@ fn user_info(
 
 fn user_name(name name: String, surname surname: String) -> element.Element(a) {
   html.div([], [
+    html.h3([], [text("Name")]),
     text_input("Vorname", "name", name),
     text_input("Nachname", "surname", surname),
   ])
@@ -151,6 +179,7 @@ fn user_address(
   location location: String,
 ) -> element.Element(a) {
   html.div([], [
+    html.h3([], [text("Adresse")]),
     text_input("Straße", "street", street),
     house_number_input(house_number, Pristine),
     postal_code_input(postal_code, Pristine),
@@ -158,10 +187,7 @@ fn user_address(
   ])
 }
 
-pub fn bank_information(
-  bin bin: String,
-  state state: ComponentState,
-) -> element.Element(a) {
+pub fn bin_input(bin bin: String, state state: ComponentState) {
   checked_text_input(
     "Bankidentifikationsnummer",
     "bin",
@@ -169,6 +195,16 @@ pub fn bank_information(
     state,
     "/users/check/bin",
   )
+}
+
+pub fn bank_information(
+  bin bin: String,
+  state state: ComponentState,
+) -> element.Element(a) {
+  html.div([], [
+    html.h3([], [text("Bankinformationen")]),
+    bin_input(bin:, state:),
+  ])
 }
 
 fn user_affiliation(institution institution: String) -> element.Element(a) {
@@ -197,6 +233,7 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
       attribute.action("/users"),
     ],
     [
+      html.h2([], [text("Regristrierung")]),
       user_info(username: state.username, password: state.password),
 
       html.br([]),
@@ -222,7 +259,7 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
 
       html.br([]),
 
-      html.input([attribute.type_("submit")]),
+      html.button([attribute.type_("submit")], [text("> Regristieren <")]),
     ],
   )
 }

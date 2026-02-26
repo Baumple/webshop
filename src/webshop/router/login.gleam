@@ -1,6 +1,7 @@
 import argus
 import gleam/float
 import gleam/list
+import gleam/option
 import gleam/result
 import gleam/time/duration
 import webshop/sessions
@@ -64,7 +65,7 @@ fn perform_login(
 fn create_session(request: Request, ctx: Context, username: String) -> Response {
   let id = sessions.create_session(ctx.sessions, username:)
 
-  wisp.html_response(pages.index(), 200)
+  wisp.html_response(pages.index_with_username(username), 200)
   |> wisp.set_cookie(
     request: request,
     name: "SESSIONID",
