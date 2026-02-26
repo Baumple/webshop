@@ -1,9 +1,11 @@
-import webshop/router/users
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
+import webshop/error
 import webshop/html/pages
 import webshop/router/login
+import webshop/router/users
+import webshop/sessions
 
 fn middleware(request: Request, continue: fn(Request) -> Response) -> Response {
   let request = wisp.method_override(request)
@@ -19,28 +21,45 @@ pub fn handler(ctx: Context, request: Request) -> Response {
   case wisp.path_segments(request) {
     ["login"] -> login.handle(ctx, request)
     ["users", ..] -> users.handle(ctx, request)
+    ["cookies", "clear"] -> {
+      let assert Ok(_) = sessions.clear(ctx.sessions)
+      handle_home_page(ctx, request)
+    }
     [] -> handle_home_page(ctx, request)
     _ -> wisp.not_found()
   }
 }
 
-/// confirms whether the user has a valid session id, 
-/// otherwise prompts them to log in/create an account
-fn confirm_logged_in(
-  _ctx: Context,
+/// requires a cookie to be set
+fn require_cookie(
   request: Request,
+  name: String,
   continue: fn(String) -> Response,
 ) -> Response {
-  case wisp.get_cookie(request, "SESSIONID", wisp.Signed) {
+  case wisp.get_cookie(request, name, wisp.PlainText) {
     Error(Nil) ->
       wisp.ok()
       |> wisp.html_body(pages.login())
-
     Ok(session_id) -> continue(session_id)
   }
 }
 
+/// confirms whether the user has a valid session id, 
+/// otherwise prompts them redirects them to the login page
+fn require_logged_in(
+  ctx: Context,
+  request: Request,
+  continue: fn(String) -> Response,
+) -> Response {
+  use session_id <- require_cookie(request, "SESSIONID")
+  case sessions.exists(ctx.sessions, session_id) {
+    Ok(True) -> continue(session_id)
+    Ok(False) -> wisp.html_response(pages.login(), 200)
+    Error(err) -> error.log_ets_error(err)
+  }
+}
+
 fn handle_home_page(ctx: Context, request: Request) -> Response {
-  use _session_id <- confirm_logged_in(ctx, request)
+  use _session_id <- require_logged_in(ctx, request)
   wisp.ok() |> wisp.html_body(pages.index())
 }

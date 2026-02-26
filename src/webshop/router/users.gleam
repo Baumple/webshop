@@ -1,18 +1,15 @@
 import argus
-import cake/adapter/sqlite
-import cake/insert
-import gleam/dynamic/decode
 import gleam/http
 import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
-import lustre/element
-import webshop/error
-import webshop/html/components
+import webshop/data/db
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
+import webshop/data/types.{Customer}
+import webshop/error
 import webshop/html/component_states/register_state
 import webshop/html/pages
 import webshop/router/users/validate
@@ -152,51 +149,23 @@ fn hash_password(password, continue) -> Response {
 }
 
 fn perform_register(ctx: Context, state: RegisterInfo) -> Response {
-  let RegisterInfo(
-    username:,
-    name:,
-    surname:,
-    street:,
-    house_number:,
-    postal_code:,
-    location:,
-    bin:,
-    institution:,
-    password:,
-  ) = state
-  use hash <- hash_password(password)
+  use hash <- hash_password(state.password)
   let res =
-    insert.from_values(
-      table_name: "customers",
-      columns: [
-        "username",
-        "name",
-        "surname",
-        "street",
-        "house_number",
-        "postal_code",
-        "location",
-        "bin",
-        "institution",
-        "hash",
-      ],
-      values: [
-        insert.row([
-          insert.string(username),
-          insert.string(name),
-          insert.string(surname),
-          insert.string(street),
-          insert.int(house_number),
-          insert.int(postal_code),
-          insert.string(location),
-          insert.int(bin),
-          insert.string(institution),
-          insert.string(hash.encoded_hash),
-        ]),
-      ],
+    db.insert_customer(
+      Customer(
+        username: state.username,
+        name: state.name,
+        surname: state.surname,
+        street: state.street,
+        house_number: state.house_number,
+        postal_code: state.postal_code,
+        location: state.location,
+        bin: state.bin,
+        institution: state.institution,
+        password_hash: hash.encoded_hash,
+      ),
+      ctx.db,
     )
-    |> insert.to_query
-    |> sqlite.run_write_query(decode.dynamic, ctx.db)
 
   case res {
     Ok(_) ->

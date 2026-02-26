@@ -1,10 +1,13 @@
 import argus
+import gleam/float
 import gleam/list
 import gleam/result
-import webshop/data/db
+import gleam/time/duration
+import webshop/sessions
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
+import webshop/data/db
 import webshop/html/pages
 
 pub fn handle(ctx: Context, request: Request) -> Response {
@@ -16,7 +19,7 @@ pub fn handle(ctx: Context, request: Request) -> Response {
   }
 
   case result {
-    Ok(#(username, password)) -> perform_login(ctx, username, password)
+    Ok(#(username, password)) -> perform_login(request, ctx, username, password)
     Error(Nil) -> wisp.bad_request("Login form data is invalid.")
   }
 }
@@ -33,7 +36,12 @@ fn dummy_hash(password: String, continue: fn() -> Response) -> Response {
   }
 }
 
-fn perform_login(ctx: Context, username: String, password: String) -> Response {
+fn perform_login(
+  request: Request,
+  ctx: Context,
+  username: String,
+  password: String,
+) -> Response {
   case db.get_username_password_hash(ctx.db, username) {
     db.NotFound -> {
       use <- dummy_hash(password)
@@ -42,7 +50,7 @@ fn perform_login(ctx: Context, username: String, password: String) -> Response {
     db.Found(hash) -> {
       let assert Ok(is_valid) = argus.verify(hash, password)
       case is_valid {
-        True -> create_session(ctx)
+        True -> create_session(request, ctx, username)
         False -> invalid_login(ctx)
       }
     }
@@ -53,8 +61,17 @@ fn perform_login(ctx: Context, username: String, password: String) -> Response {
   }
 }
 
-fn create_session(ctx: Context) -> Response {
-  todo
+fn create_session(request: Request, ctx: Context, username: String) -> Response {
+  let id = sessions.create_session(ctx.sessions, username:)
+
+  wisp.html_response(pages.index(), 200)
+  |> wisp.set_cookie(
+    request: request,
+    name: "SESSIONID",
+    value: id,
+    security: wisp.PlainText,
+    max_age: duration.hours(24) |> duration.to_seconds() |> float.round(),
+  )
 }
 
 fn invalid_login(_ctx: Context) -> Response {

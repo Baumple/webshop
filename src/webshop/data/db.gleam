@@ -1,4 +1,5 @@
 import cake/adapter/sqlite
+import cake/insert
 import cake/select
 import cake/where
 import gleam/dynamic/decode
@@ -8,6 +9,7 @@ import wisp
 
 import webshop/data/db/category
 import webshop/data/db/items
+import webshop/data/types.{type Customer}
 import webshop/error.{type WebshopInitError}
 
 pub type DBResult(a) {
@@ -160,10 +162,6 @@ pub fn get_username_password_hash(
   }
 }
 
-pub fn insert_session() {
-  todo
-}
-
 pub fn username_exists(
   db: Connection,
   username: String,
@@ -183,4 +181,30 @@ pub fn username_exists(
     Ok(_) -> panic as "Multiple users with same username"
     Error(err) -> Error(err)
   }
+}
+
+pub fn insert_customer(
+  customer: Customer,
+  db: Connection,
+) -> Result(Nil, sqlight.Error) {
+  insert.from_records(
+    table_name: "customers",
+    columns: [
+      "username",
+      "name",
+      "surname",
+      "street",
+      "house_number",
+      "postal_code",
+      "location",
+      "bin",
+      "institution",
+      "hash",
+    ],
+    records: [customer],
+    encoder: types.customer_to_insert_row,
+  )
+  |> insert.to_query
+  |> sqlite.run_write_query(decode.dynamic, db)
+  |> result.replace(Nil)
 }

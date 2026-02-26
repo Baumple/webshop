@@ -20,6 +20,9 @@ fn handle_startup_error(err: error.WebshopInitError) -> Nil {
     error.DBError(err) -> log_err("Failed to initialize database", err)
 
     error.ParseError(err) -> log_err("Failed to acquire data from api", err)
+
+    error.SessionError(err) ->
+      log_err("Failed to initialize session ets: ", err)
   }
 }
 

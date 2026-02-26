@@ -226,3 +226,7 @@ pub fn register_form(state: RegisterState) -> element.Element(a) {
     ],
   )
 }
+
+pub fn main() -> element.Element(a) {
+  html.main([], [html.p([], [text("Test")])])
+}
