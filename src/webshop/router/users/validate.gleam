@@ -4,7 +4,7 @@ import wisp.{type FormData, type Request, type Response}
 
 import webshop/context.{type Context}
 import webshop/html/component_states/register_state
-import webshop/html/components.{type ComponentState} as comps
+import webshop/html/components/register_form.{type ComponentState} as comps
 
 pub fn handle_validations(
   ctx: Context,

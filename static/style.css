@@ -1,0 +1,29 @@
+html {
+  font-family: Courier, New, monospace;
+  background: black;
+  color: #4AF262;
+  text-shadow: rgba(4,175,38,1) 0px 0px 19px;
+}
+
+.separator { 
+  color: #4AF262;
+  background: #4AF262;
+}
+
+header {
+  margin-left: 2em;
+  display: grid;
+  grid-template-columns: 0.2fr 1fr;
+}
+
+header>h1 {
+  margin-right: 0em;
+  padding-right: 0em;
+}
+
+header>p {
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-left: 0em;
+  padding-left: 0em;
+}
