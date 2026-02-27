@@ -1,8 +1,10 @@
 import gleam/list
 import lustre/element
+import webshop/data/db
 import wisp.{type FormData, type Request, type Response}
 
 import webshop/context.{type Context}
+import webshop/error
 import webshop/html/component_states/register_state
 import webshop/html/components/form.{type ComponentState}
 
@@ -106,8 +108,9 @@ fn prevent_duplicate_usernames(
   username: String,
   continue: fn() -> Response,
 ) -> Response {
-  form.username_input(username, form.Valid)
-  |> element.to_document_string
-  |> wisp.html_response(200)
-  todo as "prevent_duplicate_usernames not implemented"
+  case db.username_exists(ctx.db, username) {
+    Ok(True) -> continue()
+    Ok(False) -> todo
+    Error(err) -> error.log_sql_error(err)
+  }
 }
