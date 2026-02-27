@@ -36,6 +36,7 @@ pub fn handler(ctx: Context, request: Request) -> Response {
   }
 }
 
+// TODO: let users view home page without being logged in
 fn handle_home_page(ctx: Context, request: Request) -> Response {
   use session_id <- middleware.require_session_id(ctx, request)
   let session = sessions.get(ctx.sessions, session_id)
