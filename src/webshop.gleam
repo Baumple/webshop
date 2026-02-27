@@ -1,5 +1,6 @@
 import gleam/erlang/process
 import gleam/string
+import radiate
 
 import mist
 import wisp
@@ -19,6 +20,9 @@ fn handle_startup_error(err: error.WebshopInitError) -> Nil {
     error.DBError(err) -> log_err("Failed to initialize database", err)
 
     error.ParseError(err) -> log_err("Failed to acquire data from api", err)
+
+    error.SessionError(err) ->
+      log_err("Failed to initialize session ets: ", err)
   }
 }
 
@@ -33,6 +37,11 @@ fn start_server(context: context.Context) -> Nil {
 
 pub fn main() -> Nil {
   wisp.configure_logger()
+  let assert Ok(_) =
+    radiate.new()
+    |> radiate.add_dir("src/webshop/html/")
+    |> radiate.add_dir("src/webshop/router/")
+    |> radiate.start
   case context.new() {
     Error(err) -> handle_startup_error(err)
     Ok(context) -> start_server(context)

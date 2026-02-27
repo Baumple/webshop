@@ -1,5 +1,7 @@
 import cake/adapter/sqlite
 import cake/insert
+import cake/select
+import cake/where
 import gleam/dynamic/decode
 import gleam/list
 import gleam/option
@@ -10,6 +12,7 @@ import wisp
 
 import webshop/data/db/category
 import webshop/data/db/items
+import webshop/data/types.{type Customer}
 import webshop/error.{type WebshopInitError}
 
 pub type DBResult(a) {
@@ -22,7 +25,11 @@ pub fn open() -> Result(Connection, WebshopInitError) {
   use db <- result.try(
     sqlight.open("file:pokeshop.db") |> result.map_error(error.DBError),
   )
-  result.try(init_scheme(db), init_data)
+  init_scheme(db)
+}
+
+pub fn initialize_data(db: Connection) -> Result(Connection, WebshopInitError) {
+  init_data(db)
 }
 
 const scheme = "
@@ -64,7 +71,7 @@ const scheme = "
   );
 
   CREATE TABLE IF NOT EXISTS customers (
-    username     TEXT PRIMARY KEY,
+    username     TEXT NOT NULL PRIMARY KEY,
     name         TEXT NOT NULL,
     surname      TEXT NOT NULL,
     street       TEXT NOT NULL,
@@ -135,7 +142,7 @@ fn update_database(db: Connection) -> Result(Connection, WebshopInitError) {
 }
 
 const username_password_query = "
-  SELECT hash FROM username_password WHERE username = ?
+  SELECT hash FROM customers WHERE username = ?
 "
 
 pub fn get_username_password_hash(
@@ -147,18 +154,60 @@ pub fn get_username_password_hash(
       username_password_query,
       db,
       [sqlight.text(username)],
-      decode.string,
+      decode.list(decode.string),
     )
 
   case res {
-    Ok([hash]) -> Found(hash)
+    Ok([[hash]]) -> Found(hash)
     Ok([]) -> NotFound
     Error(err) -> SqlightError(err)
     _ -> panic as "Invalid sql data."
   }
 }
 
+pub fn username_exists(
+  db: Connection,
+  username: String,
+) -> Result(Bool, sqlight.Error) {
+  let res =
+    select.new()
+    |> select.from_table("customers")
+    |> select.select_col("username")
+    |> select.where(where.eq(where.col("username"), where.string(username)))
+    |> select.limit(1)
+    |> select.to_query
+    |> sqlite.run_read_query(decode.dynamic, db)
 
-pub fn insert_session() {
-  todo
+  case res {
+    Ok([]) -> Ok(False)
+    Ok([_]) -> Ok(True)
+    Ok(_) -> panic as "Multiple users with same username"
+    Error(err) -> Error(err)
+  }
+}
+
+pub fn insert_customer(
+  customer: Customer,
+  db: Connection,
+) -> Result(Nil, sqlight.Error) {
+  insert.from_records(
+    table_name: "customers",
+    columns: [
+      "username",
+      "name",
+      "surname",
+      "street",
+      "house_number",
+      "postal_code",
+      "location",
+      "bin",
+      "institution",
+      "hash",
+    ],
+    records: [customer],
+    encoder: types.customer_to_insert_row,
+  )
+  |> insert.to_query
+  |> sqlite.run_write_query(decode.dynamic, db)
+  |> result.replace(Nil)
 }

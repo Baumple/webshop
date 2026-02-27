@@ -12,6 +12,7 @@
         buildInputs = with pkgs; [
             gleam
             sqlite
+            inotify-tools
         ];
       };
     }

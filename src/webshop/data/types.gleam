@@ -1,6 +1,7 @@
-import gleam/option
+import cake/insert
 import gleam/dict
 import gleam/dynamic/decode
+import gleam/option
 
 fn name_pair_decoder() -> decode.Decoder(#(String, String)) {
   use language <- decode.subfield(["language", "name"], decode.string)
@@ -79,7 +80,10 @@ pub fn item_decoder() -> decode.Decoder(Item) {
     decode.list(decode_effect_entry()),
   )
   let effect_entries = dict.from_list(effect_entries)
-  use sprite <- decode.subfield(["sprites", "default"], decode.optional(decode.string))
+  use sprite <- decode.subfield(
+    ["sprites", "default"],
+    decode.optional(decode.string),
+  )
   decode.success(Item(
     id:,
     name:,
@@ -90,4 +94,46 @@ pub fn item_decoder() -> decode.Decoder(Item) {
     effect_entries:,
     sprite:,
   ))
+}
+
+pub type Customer {
+  Customer(
+    username: String,
+    name: String,
+    surname: String,
+    street: String,
+    house_number: Int,
+    postal_code: Int,
+    location: String,
+    bin: Int,
+    institution: String,
+    password_hash: String,
+  )
+}
+
+pub fn customer_to_insert_row(c: Customer) -> insert.InsertRow {
+  let Customer(
+    username:,
+    name:,
+    surname:,
+    street:,
+    house_number:,
+    postal_code:,
+    location:,
+    bin:,
+    institution:,
+    password_hash:,
+  ) = c
+  insert.row([
+    insert.string(username),
+    insert.string(name),
+    insert.string(surname),
+    insert.string(street),
+    insert.int(house_number),
+    insert.int(postal_code),
+    insert.string(location),
+    insert.int(bin),
+    insert.string(institution),
+    insert.string(password_hash),
+  ])
 }

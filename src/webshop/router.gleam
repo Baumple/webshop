@@ -1,44 +1,52 @@
+import gleam/option
+import webshop/error
+import webshop/router/middleware
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
 import webshop/html/pages
-import webshop/router/components
 import webshop/router/login
+import webshop/router/users
+import webshop/sessions
 
-fn middleware(request: Request, continue: fn(Request) -> Response) -> Response {
+fn default_middleware(
+  request: Request,
+  continue: fn(Request) -> Response,
+) -> Response {
   let request = wisp.method_override(request)
   use <- wisp.log_request(request)
   use <- wisp.rescue_crashes()
   use request <- wisp.handle_head(request)
   use request <- wisp.csrf_known_header_protection(request)
+  use <- wisp.serve_static(request, under: "/static", from: "./static")
   continue(request)
 }
 
 pub fn handler(ctx: Context, request: Request) -> Response {
-  use request <- middleware(request)
+  use request <- default_middleware(request)
   case wisp.path_segments(request) {
     ["login"] -> login.handle(ctx, request)
-    ["hx", ..component_path] -> components.handle(component_path, ctx, request)
+    ["users", ..] -> users.handle(ctx, request)
+    ["cookies", "clear"] -> {
+      let assert Ok(_) = sessions.clear(ctx.sessions)
+      handle_home_page(ctx, request)
+    }
     [] -> handle_home_page(ctx, request)
     _ -> wisp.not_found()
   }
 }
 
-/// confirms whether the user has a valid session id, 
-/// otherwise prompts them to log in/create an account
-fn assert_logged_in(
-  _ctx: Context,
-  request: Request,
-  continue: fn(String) -> Response,
-) -> Response {
-  case wisp.get_cookie(request, "SESSIONID", wisp.Signed) {
-    Error(Nil) -> wisp.html_response(pages.login(), 200)
-
-    Ok(session_id) -> continue(session_id)
-  }
-}
-
+// TODO: let users view home page without being logged in
 fn handle_home_page(ctx: Context, request: Request) -> Response {
-  use _session_id <- assert_logged_in(ctx, request)
-  wisp.html_response(pages.index(), 200)
+  use session_id <- middleware.require_session_id(ctx, request)
+  let session = sessions.get(ctx.sessions, session_id)
+  case session {
+    Ok(session) ->
+      case session {
+        option.Some(session) ->
+          wisp.html_response(pages.index_with_username(session.username), 200)
+        option.None -> wisp.html_response(pages.index(), 200)
+      }
+    Error(err) -> error.log_ets_error(err)
+  }
 }
