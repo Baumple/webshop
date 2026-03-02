@@ -1,5 +1,6 @@
 import gleam/option
 import gleeunit
+import webshop/data/poke_api
 
 import webshop/sessions
 
@@ -14,4 +15,10 @@ pub fn session_ets_test() -> Nil {
   let assert Ok(option.Some(s)) = sessions.get(ss, id)
 
   assert { id == s.id && s.username == "test" }
+}
+
+pub fn fetch_data_test() -> Nil {
+  let assert Ok(_) = poke_api.fetch_resource_entries("item-category")
+
+  Nil
 }

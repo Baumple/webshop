@@ -20,7 +20,8 @@ const endpoint_item_categories = "item-category"
 
 const endpoint_items = "item"
 
-type ResourceEntry {
+@internal
+pub type ResourceEntry {
   ResourceEntry(name: String, url: String)
 }
 
@@ -30,7 +31,8 @@ fn resource_entry_decoder() -> decode.Decoder(ResourceEntry) {
   decode.success(ResourceEntry(name:, url:))
 }
 
-fn fetch_resource_entries(
+@internal
+pub fn fetch_resource_entries(
   resource: String,
 ) -> Result(List(ResourceEntry), WebshopInitError) {
   let assert Ok(uri) = uri.parse(base_url <> resource <> "?limit=10000")
@@ -70,13 +72,12 @@ type FetchMessage(a) {
 
 /// Spawns multiple processes which fetch the data in parallel batches
 fn parallel_fetch_resources(
-  resource: String,
+  entries: List(ResourceEntry),
   decoder: decode.Decoder(a),
 ) -> Result(List(a), WebshopInitError) {
-  use entries <- result.try(fetch_resource_entries(resource))
   let entry_count = list.length(entries)
-  let process_count = 10
-  let entries_per_process = entry_count / process_count
+  let process_count = 1
+  let entries_per_process = echo entry_count / process_count
 
   wisp.log_info(
     "Fetching "
@@ -145,11 +146,48 @@ fn handle(
   }
 }
 
-// TODO: pass callback parameter so items can be inserted on the fly into the database
-pub fn fetch_item_categories() -> Result(List(Category), WebshopInitError) {
-  parallel_fetch_resources(endpoint_item_categories, types.category_decoder())
+fn filter_if_cached(
+  entries: List(ResourceEntry),
+  is_cached: fn(String) -> Result(Bool, WebshopInitError),
+) -> Result(List(ResourceEntry), WebshopInitError) {
+  filter_if_cached_loop(entries, is_cached, [])
 }
 
-pub fn fetch_items() -> Result(List(Item), WebshopInitError) {
-  parallel_fetch_resources(endpoint_items, types.item_decoder())
+fn filter_if_cached_loop(
+  entries: List(ResourceEntry),
+  is_cached: fn(String) -> Result(Bool, WebshopInitError),
+  acc: List(ResourceEntry),
+) -> Result(List(ResourceEntry), WebshopInitError) {
+  case entries {
+    [] -> Ok(acc)
+    [entry, ..rest] ->
+      case is_cached(entry.name) {
+        Ok(False) -> filter_if_cached_loop(rest, is_cached, acc)
+        Ok(True) -> filter_if_cached_loop(rest, is_cached, [entry, ..acc])
+        Error(err) -> Error(err)
+      }
+  }
+}
+
+// TODO: pass callback parameter so items can be inserted on the fly into the database
+pub fn fetch_item_categories(
+  is_cached: fn(String) -> Result(Bool, WebshopInitError),
+) -> Result(List(Category), WebshopInitError) {
+  use entries <- result.try(fetch_resource_entries(endpoint_item_categories))
+  use entries <- result.try(filter_if_cached(entries, is_cached))
+  case entries {
+    [] -> Ok([])
+    entries -> parallel_fetch_resources(entries, types.category_decoder())
+  }
+}
+
+pub fn fetch_items(
+  is_cached: fn(String) -> Result(Bool, WebshopInitError),
+) -> Result(List(Item), WebshopInitError) {
+  use entries <- result.try(fetch_resource_entries(endpoint_items))
+  use entries <- result.try(filter_if_cached(entries, is_cached))
+  case entries {
+    [] -> Ok([])
+    entries -> parallel_fetch_resources(entries, types.item_decoder())
+  }
 }

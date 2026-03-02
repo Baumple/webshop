@@ -63,8 +63,9 @@ const scheme = "
   );
 
   CREATE TABLE IF NOT EXISTS item_names (
-    item_id INTEGER NOT NULL REFERENCES items(id),
-    name    TEXT NOT NULL
+    item_id  INTEGER NOT NULL REFERENCES items(id),
+    language TEXT NOT NULL,
+    name     TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS customers (
@@ -132,7 +133,7 @@ fn clear_database(
 
 fn update_database(db: Connection) -> Result(Connection, WebshopInitError) {
   wisp.log_info("Updating database.")
-  use <- clear_database(db)
+  // use <- clear_database(db)
   use <- category.update_categories(db)
   use <- items.update_items(db)
   todo

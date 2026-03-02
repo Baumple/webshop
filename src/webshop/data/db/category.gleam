@@ -1,21 +1,46 @@
 import cake/adapter/sqlite
 import cake/insert
+import cake/select
+import cake/where
 import gleam/dict
 import gleam/dynamic/decode
 import gleam/list
 import gleam/result
 import sqlight.{type Connection}
+import webshop/data/db/helper
 import wisp
 
 import webshop/data/poke_api
 import webshop/data/types.{type Category}
 import webshop/error.{type WebshopInitError}
 
+fn category_exists(
+  db: Connection,
+  name: String,
+) -> Result(Bool, WebshopInitError) {
+  let res =
+    select.new()
+    |> select.from_table("categories")
+    |> select.where(where.eq(where.col("name"), where.string(name)))
+    |> select.to_query()
+    |> sqlite.run_read_query(decode.dynamic, db)
+    |> result.map_error(error.DBError)
+  case res {
+    Ok([_]) -> Ok(True)
+    Ok([]) -> Ok(False)
+    Ok([_, _, ..]) -> panic as "Illegal SQL result"
+    Error(err) -> Error(err)
+  }
+}
+
 pub fn update_categories(
   db: Connection,
   continue,
 ) -> Result(Connection, WebshopInitError) {
-  use categories <- result.try(poke_api.fetch_item_categories())
+  use categories <- result.try(
+    poke_api.fetch_item_categories(category_exists(db, _)),
+  )
+  use <- helper.require_not_empty(categories)
   use _ <- result.try(insert_categories(db, categories))
   case insert_category_names(db, categories) {
     Ok(_) -> {
@@ -45,7 +70,7 @@ fn insert_categories(
   |> insert.to_query()
   |> sqlite.run_write_query(decode.dynamic, db)
   |> result.replace(Nil)
-  |> result.map_error(error.DBError)
+  |> result.map_error(error.DBDataError)
 }
 
 fn insert_category_names(

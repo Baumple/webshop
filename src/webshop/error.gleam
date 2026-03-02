@@ -7,6 +7,7 @@ import wisp
 
 pub type WebshopInitError {
   DBError(sqlight.Error)
+  DBDataError(sqlight.Error)
   HttpcError(httpc.HttpError)
   ParseError(json.DecodeError)
   SessionError(table.EtsError)
