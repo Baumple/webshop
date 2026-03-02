@@ -3,6 +3,7 @@ import cake/insert
 import cake/select
 import cake/where
 import gleam/dynamic/decode
+import gleam/erlang/process
 import gleam/result
 import sqlight.{type Connection}
 import wisp
@@ -25,8 +26,14 @@ pub fn open() -> Result(Connection, WebshopInitError) {
   init_scheme(db)
 }
 
+pub fn initialize_data_async(db: Connection) -> Connection {
+  process.spawn(fn() { update_data(db) })
+  db
+}
+
 pub fn initialize_data(db: Connection) -> Result(Connection, WebshopInitError) {
-  init_data(db)
+  update_data(db)
+  |> result.replace(db)
 }
 
 const scheme = "
@@ -113,12 +120,11 @@ fn clear_database(
   }
 }
 
-fn init_data(db: Connection) -> Result(Connection, WebshopInitError) {
+fn update_data(db: Connection) -> Result(Nil, WebshopInitError) {
   wisp.log_info("Updating database.")
-  // use <- clear_database(db)
-  use <- category.update_categories(db)
-  use <- items.update_items(db)
-  Ok(db)
+  use _ <- result.try(category.update_categories(db))
+  use _ <- result.try(items.update_items(db))
+  Ok(Nil)
 }
 
 const username_password_query = "

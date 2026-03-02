@@ -4,7 +4,11 @@ import gleam/dynamic/decode
 import gleam/result
 import sqlight
 
-pub fn require_not_empty(l: List(a), otherwise otherwise: b, then continue: fn() -> b) -> b {
+pub fn require_not_empty(
+  l: List(a),
+  otherwise otherwise: b,
+  then continue: fn() -> b,
+) -> b {
   case l {
     [] -> otherwise
     _ -> continue()

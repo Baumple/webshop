@@ -19,7 +19,7 @@ pub fn new() -> Result(Context, error.WebshopInitError) {
   use sessions <- result.try(sessions.new())
   use db <- result.try(
     db.open()
-    |> result.try(db.initialize_data),
+    |> result.map(db.initialize_data_async),
   )
 
   Ok(Context(db:, sessions:))

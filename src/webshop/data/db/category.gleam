@@ -33,10 +33,7 @@ fn category_exists(
   }
 }
 
-pub fn update_categories(
-  db: Connection,
-  continue: fn() -> Result(Connection, WebshopInitError),
-) -> Result(Connection, WebshopInitError) {
+pub fn update_categories(db: Connection) -> Result(Nil, WebshopInitError) {
   let res =
     poke_api.fetch_item_categories(category_exists(db, _), insert_categories(
       db,
@@ -46,7 +43,7 @@ pub fn update_categories(
   case res {
     Ok(Nil) -> {
       wisp.log_info("Updated categories.")
-      continue()
+      Ok(Nil)
     }
     Error(err) -> Error(err)
   }

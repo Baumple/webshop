@@ -2,6 +2,7 @@ import cake/adapter/sqlite
 import cake/insert
 import cake/select
 import cake/where
+import gleam/bool
 import gleam/dict
 import gleam/dynamic/decode
 import gleam/list
@@ -31,15 +32,12 @@ fn item_exists(db: Connection, name: String) -> Result(Bool, WebshopInitError) {
   }
 }
 
-pub fn update_items(
-  db: Connection,
-  continue,
-) -> Result(Connection, WebshopInitError) {
+pub fn update_items(db: Connection) -> Result(Nil, WebshopInitError) {
   let res = poke_api.fetch_items(item_exists(db, _), insert_items(db, _))
   case res {
     Ok(Nil) -> {
       wisp.log_info("Updated items.")
-      continue()
+      Ok(Nil)
     }
     Error(err) -> Error(err)
   }
@@ -68,6 +66,8 @@ fn insert_item_names(
   items: List(Item),
 ) -> Result(Nil, sqlight.Error) {
   list.map(items, fn(item) {
+    use <- bool.guard(when: dict.is_empty(item.names), return: Ok(Nil))
+
     list.map(item.names |> dict.to_list, fn(names) {
       let #(language, name) = names
       insert.row([
@@ -83,6 +83,7 @@ fn insert_item_names(
     ])
     |> insert.to_query
     |> sqlite.run_write_query(decode.dynamic, db)
+    |> result.replace(Nil)
   })
   |> result.all
   |> result.replace(Nil)
@@ -93,6 +94,8 @@ fn insert_item_attributes(
   items: List(Item),
 ) -> Result(Nil, sqlight.Error) {
   list.map(items, fn(item) {
+    use <- bool.guard(when: list.is_empty(item.attributes), return: Ok(Nil))
+
     list.map(item.attributes, fn(attribute) {
       insert.row([insert.int(item.id), insert.string(attribute)])
     })
@@ -102,6 +105,7 @@ fn insert_item_attributes(
     ])
     |> insert.to_query
     |> sqlite.run_write_query(decode.dynamic, db)
+    |> result.replace(Nil)
   })
   |> result.all
   |> result.replace(Nil)
@@ -112,6 +116,7 @@ fn insert_item_effect_entries(
   items: List(Item),
 ) -> Result(Nil, sqlight.Error) {
   list.map(items, fn(item) {
+    use <- bool.guard(when: dict.is_empty(item.effect_entries), return: Ok(Nil))
     list.map(item.effect_entries |> dict.to_list, fn(effect) {
       let #(language, entry) = effect
       insert.row([
@@ -129,6 +134,7 @@ fn insert_item_effect_entries(
     ])
     |> insert.to_query
     |> sqlite.run_write_query(decode.dynamic, db)
+    |> result.replace(Nil)
   })
   |> result.all
   |> result.replace(Nil)
