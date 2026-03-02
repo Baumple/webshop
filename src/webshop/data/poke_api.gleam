@@ -9,6 +9,7 @@ import gleam/list
 import gleam/otp/actor
 import gleam/result
 import gleam/uri
+import sqlight
 import wisp
 
 import webshop/data/types.{type Category, type Item}
@@ -70,14 +71,23 @@ type FetchMessage(a) {
   Failure(WebshopInitError)
 }
 
+type FetchState(a) {
+  FetchState(
+    process_count: Int,
+    insert_resource: fn(List(a)) -> Result(Nil, sqlight.Error),
+    subject: process.Subject(Result(Nil, WebshopInitError)),
+  )
+}
+
 /// Spawns multiple processes which fetch the data in parallel batches
 fn parallel_fetch_resources(
   entries: List(ResourceEntry),
+  insert_resource: fn(List(a)) -> Result(Nil, sqlight.Error),
   decoder: decode.Decoder(a),
-) -> Result(List(a), WebshopInitError) {
+) -> Result(Nil, WebshopInitError) {
   let entry_count = list.length(entries)
-  let process_count = 1
-  let entries_per_process = echo entry_count / process_count
+  let process_count = 5
+  let entries_per_process = entry_count / process_count
 
   wisp.log_info(
     "Fetching "
@@ -89,7 +99,7 @@ fn parallel_fetch_resources(
 
   let subject = process.new_subject()
   let assert Ok(started) =
-    actor.new(ActorState(process_count, [], subject))
+    actor.new(FetchState(process_count:, insert_resource:, subject:))
     |> actor.on_message(handle)
     |> actor.start()
   let accumulator = started.data
@@ -111,11 +121,9 @@ fn parallel_fetch_resources(
   process.receive_forever(subject)
 }
 
-type FetchState(a) {
-  ActorState(
-    process_count: Int,
-    entries: List(a),
-    subject: process.Subject(Result(List(a), WebshopInitError)),
+fn log_process(_state: FetchState(a), new_progress_count: Int) -> Nil {
+  wisp.log_info(
+    "Remaining number of processes: " <> int.to_string(new_progress_count),
   )
 }
 
@@ -126,16 +134,26 @@ fn handle(
   case msg {
     Success(entries) -> {
       let new_process_count = state.process_count - 1
-      let entries = list.append(state.entries, entries)
-      echo list.length(entries)
-      case new_process_count == 0 {
-        False ->
-          actor.continue(
-            ActorState(..state, process_count: new_process_count, entries:),
+      log_process(state, new_process_count)
+
+      case state.insert_resource(entries) {
+        Ok(Nil) ->
+          case new_process_count == 0 {
+            False ->
+              actor.continue(
+                FetchState(..state, process_count: new_process_count),
+              )
+            True -> {
+              actor.send(state.subject, Ok(Nil))
+              actor.stop()
+            }
+          }
+        Error(err) -> {
+          wisp.log_error("Failed to insert fetched resource into database.")
+          actor.send(state.subject, Error(error.DBError(err)))
+          actor.stop_abnormal(
+            "Failed to insert fetched resource into database.",
           )
-        True -> {
-          actor.send(state.subject, Ok(entries))
-          actor.stop()
         }
       }
     }
@@ -146,14 +164,14 @@ fn handle(
   }
 }
 
-fn filter_if_cached(
+fn filter_not_cached(
   entries: List(ResourceEntry),
   is_cached: fn(String) -> Result(Bool, WebshopInitError),
 ) -> Result(List(ResourceEntry), WebshopInitError) {
-  filter_if_cached_loop(entries, is_cached, [])
+  filter_not_cached_loop(entries, is_cached, [])
 }
 
-fn filter_if_cached_loop(
+fn filter_not_cached_loop(
   entries: List(ResourceEntry),
   is_cached: fn(String) -> Result(Bool, WebshopInitError),
   acc: List(ResourceEntry),
@@ -162,32 +180,62 @@ fn filter_if_cached_loop(
     [] -> Ok(acc)
     [entry, ..rest] ->
       case is_cached(entry.name) {
-        Ok(False) -> filter_if_cached_loop(rest, is_cached, acc)
-        Ok(True) -> filter_if_cached_loop(rest, is_cached, [entry, ..acc])
+        Ok(False) -> filter_not_cached_loop(rest, is_cached, [entry, ..acc])
+        Ok(True) -> filter_not_cached_loop(rest, is_cached, acc)
         Error(err) -> Error(err)
       }
   }
 }
 
-// TODO: pass callback parameter so items can be inserted on the fly into the database
 pub fn fetch_item_categories(
   is_cached: fn(String) -> Result(Bool, WebshopInitError),
-) -> Result(List(Category), WebshopInitError) {
+  insert_categories: fn(List(Category)) -> Result(Nil, sqlight.Error),
+) -> Result(Nil, WebshopInitError) {
   use entries <- result.try(fetch_resource_entries(endpoint_item_categories))
-  use entries <- result.try(filter_if_cached(entries, is_cached))
-  case entries {
-    [] -> Ok([])
-    entries -> parallel_fetch_resources(entries, types.category_decoder())
+  use not_in_cache <- result.try(filter_not_cached(entries, is_cached))
+
+  let total = list.length(entries)
+  let not_cached = list.length(not_in_cache)
+
+  wisp.log_notice(
+    "Cached "
+    <> int.to_string(total - not_cached)
+    <> "/"
+    <> int.to_string(total)
+    <> " categories",
+  )
+
+  case not_in_cache {
+    [] -> Ok(Nil)
+    entries ->
+      parallel_fetch_resources(
+        entries,
+        insert_categories,
+        types.category_decoder(),
+      )
   }
 }
 
 pub fn fetch_items(
   is_cached: fn(String) -> Result(Bool, WebshopInitError),
-) -> Result(List(Item), WebshopInitError) {
+  insert_items: fn(List(Item)) -> Result(Nil, sqlight.Error),
+) -> Result(Nil, WebshopInitError) {
   use entries <- result.try(fetch_resource_entries(endpoint_items))
-  use entries <- result.try(filter_if_cached(entries, is_cached))
-  case entries {
-    [] -> Ok([])
-    entries -> parallel_fetch_resources(entries, types.item_decoder())
+  use not_in_cache <- result.try(filter_not_cached(entries, is_cached))
+
+  let total = list.length(entries)
+  let not_cached = list.length(not_in_cache)
+
+  wisp.log_notice(
+    "Cached "
+    <> int.to_string(total - not_cached)
+    <> "/"
+    <> int.to_string(total)
+    <> " items",
+  )
+  case not_in_cache {
+    [] -> Ok(Nil)
+    entries ->
+      parallel_fetch_resources(entries, insert_items, types.item_decoder())
   }
 }

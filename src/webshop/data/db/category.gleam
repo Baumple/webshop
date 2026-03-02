@@ -35,15 +35,16 @@ fn category_exists(
 
 pub fn update_categories(
   db: Connection,
-  continue,
+  continue: fn() -> Result(Connection, WebshopInitError),
 ) -> Result(Connection, WebshopInitError) {
-  use categories <- result.try(
-    poke_api.fetch_item_categories(category_exists(db, _)),
-  )
-  use <- helper.require_not_empty(categories)
-  use _ <- result.try(insert_categories(db, categories))
-  case insert_category_names(db, categories) {
-    Ok(_) -> {
+  let res =
+    poke_api.fetch_item_categories(category_exists(db, _), insert_categories(
+      db,
+      _,
+    ))
+
+  case res {
+    Ok(Nil) -> {
       wisp.log_info("Updated categories.")
       continue()
     }
@@ -54,29 +55,31 @@ pub fn update_categories(
 fn insert_categories(
   db: sqlight.Connection,
   categories: List(Category),
-) -> Result(Nil, WebshopInitError) {
-  list.map(categories, fn(c) {
-    insert.row([
-      insert.int(c.id),
-      insert.string(c.name),
-      insert.string(c.pocket),
+) -> Result(Nil, sqlight.Error) {
+  use <- helper.require_not_empty(categories, Ok(Nil))
+  let res =
+    list.map(categories, fn(c) {
+      insert.row([
+        insert.int(c.id),
+        insert.string(c.name),
+        insert.string(c.pocket),
+      ])
+    })
+    |> insert.from_values(table_name: "categories", columns: [
+      "id",
+      "name",
+      "pocket",
     ])
-  })
-  |> insert.from_values(table_name: "categories", columns: [
-    "id",
-    "name",
-    "pocket",
-  ])
-  |> insert.to_query()
-  |> sqlite.run_write_query(decode.dynamic, db)
-  |> result.replace(Nil)
-  |> result.map_error(error.DBDataError)
+    |> insert.to_query()
+    |> helper.run_write_query(db)
+  use _ <- result.try(res)
+  insert_category_names(db, categories)
 }
 
 fn insert_category_names(
   db: Connection,
   cs: List(Category),
-) -> Result(Nil, WebshopInitError) {
+) -> Result(Nil, sqlight.Error) {
   {
     use c <- list.map(cs)
     list.map(dict.to_list(c.names), fn(language_name) {
@@ -94,7 +97,6 @@ fn insert_category_names(
     ])
     |> insert.to_query()
     |> sqlite.run_write_query(decode.dynamic, db)
-    |> result.map_error(error.DBError)
   }
   |> result.all
   |> result.replace(Nil)

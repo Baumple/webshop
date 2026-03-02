@@ -90,24 +90,6 @@ fn init_scheme(db: Connection) -> Result(Connection, WebshopInitError) {
   }
 }
 
-fn init_data(db: Connection) -> Result(Connection, WebshopInitError) {
-  case
-    sqlight.query("SELECT COUNT(*) FROM items", db, [], decode.list(decode.int))
-  {
-    // no data in database
-    Ok([[count]]) if count == 0 -> update_database(db)
-
-    // database has data
-    Ok([_]) -> Ok(db)
-
-    // database did not return expected data
-    Ok(..) -> panic as "Invalid sql data."
-
-    // some other sql error
-    Error(err) -> Error(error.DBError(err))
-  }
-}
-
 fn clear_database(
   db: Connection,
   continue,
@@ -131,12 +113,12 @@ fn clear_database(
   }
 }
 
-fn update_database(db: Connection) -> Result(Connection, WebshopInitError) {
+fn init_data(db: Connection) -> Result(Connection, WebshopInitError) {
   wisp.log_info("Updating database.")
   // use <- clear_database(db)
   use <- category.update_categories(db)
   use <- items.update_items(db)
-  todo
+  Ok(db)
 }
 
 const username_password_query = "
