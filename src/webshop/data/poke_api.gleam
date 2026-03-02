@@ -3,11 +3,13 @@ import gleam/erlang/process
 import gleam/http/request
 import gleam/http/response
 import gleam/httpc
+import gleam/int
 import gleam/json
 import gleam/list
 import gleam/otp/actor
 import gleam/result
 import gleam/uri
+import wisp
 
 import webshop/data/types.{type Category, type Item}
 import webshop/error.{type WebshopInitError}
@@ -76,6 +78,14 @@ fn parallel_fetch_resources(
   let process_count = 10
   let entries_per_process = entry_count / process_count
 
+  wisp.log_info(
+    "Fetching "
+    <> int.to_string(entry_count)
+    <> " entries on "
+    <> int.to_string(process_count)
+    <> " processes.",
+  )
+
   let subject = process.new_subject()
   let assert Ok(started) =
     actor.new(ActorState(process_count, [], subject))
@@ -115,17 +125,15 @@ fn handle(
   case msg {
     Success(entries) -> {
       let new_process_count = state.process_count - 1
+      let entries = list.append(state.entries, entries)
+      echo list.length(entries)
       case new_process_count == 0 {
         False ->
           actor.continue(
-            ActorState(
-              ..state,
-              process_count: new_process_count,
-              entries: list.append(entries, state.entries),
-            ),
+            ActorState(..state, process_count: new_process_count, entries:),
           )
         True -> {
-          actor.send(state.subject, Ok(list.append(state.entries, entries)))
+          actor.send(state.subject, Ok(entries))
           actor.stop()
         }
       }

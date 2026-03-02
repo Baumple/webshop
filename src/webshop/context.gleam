@@ -18,8 +18,8 @@ pub type Context {
 pub fn new() -> Result(Context, error.WebshopInitError) {
   use sessions <- result.try(sessions.new())
   use db <- result.try(
-    db.open(),
-    // |> result.try(db.initialize_data),
+    db.open()
+    |> result.try(db.initialize_data),
   )
 
   Ok(Context(db:, sessions:))
