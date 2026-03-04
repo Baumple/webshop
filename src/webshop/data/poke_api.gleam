@@ -192,6 +192,6 @@ pub fn fetch_items(
 
   case not_in_cache {
     [] -> Ok(Nil)
-    entries -> fetch_resources(entries, insert_items, types.item_decoder())
+    entries -> fetch_resources(entries, insert_items, types.item_decoder_json())
   }
 }

@@ -1,13 +1,12 @@
-import gleam/option
-import webshop/data/types
 import lustre/attribute.{attribute, class}
 import lustre/element
 import lustre/element/html.{text}
+
 import webshop/html/components
 
 pub fn header(title: String, subtitle: String) -> element.Element(a) {
   html.header([], [
-    html.div([], [html.h1([], [text(title)])]),
+    html.h1([], [text(title)]),
     html.p([], [text(subtitle)]),
   ])
 }

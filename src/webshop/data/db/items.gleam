@@ -13,7 +13,7 @@ import webshop/data/db/helper
 import wisp
 
 import webshop/data/poke_api
-import webshop/data/types.{type Item}
+import webshop/data/types.{type Item, type PartialItem, PartialItem}
 import webshop/error.{type WebshopInitError}
 
 fn item_exists(db: Connection, name: String) -> Result(Bool, WebshopInitError) {
@@ -156,4 +156,34 @@ fn insert_items(db: Connection, items: List(Item)) -> Result(Nil, sqlight.Error)
   use _ <- result.try(insert_item_names(db, items))
   use _ <- result.try(insert_item_effect_entries(db, items))
   insert_item_attributes(db, items)
+}
+
+pub fn partial_item_decoder() -> decode.Decoder(PartialItem) {
+  use id <- decode.field(0, decode.int)
+  use name <- decode.field(1, decode.string)
+  use sprite <- decode.field(2, decode.string)
+  use category <- decode.field(3, decode.string)
+  use cost <- decode.field(4, decode.int)
+  decode.success(PartialItem(id:, name:, sprite:, category:, cost:))
+}
+
+pub fn get_items_range(
+  db: Connection,
+  offset offset: Int,
+  count limit: Int,
+) -> Result(List(PartialItem), sqlight.Error) {
+  select.new()
+  |> select.select_cols([
+    "id",
+    "name",
+    "sprite",
+    "category",
+    "cost",
+  ])
+  |> select.from_table("items")
+  |> select.offset(offset)
+  |> select.limit(limit)
+  |> select.order_by_desc("cost")
+  |> select.to_query()
+  |> sqlite.run_read_query(partial_item_decoder(), db)
 }

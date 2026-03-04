@@ -4,6 +4,8 @@ import gleam/list
 import gleam/option
 import gleam/result
 import gleam/time/duration
+import webshop/data/db/helper
+import webshop/router/middleware
 import webshop/sessions
 import wisp.{type Request, type Response}
 
@@ -65,7 +67,9 @@ fn perform_login(
 fn create_session(request: Request, ctx: Context, username: String) -> Response {
   let id = sessions.create_session(ctx.sessions, username:)
 
-  wisp.html_response(pages.index_with_username(username), 200)
+  use items <- middleware.require_partial_items(ctx)
+
+  wisp.html_response(pages.index_with_username(username, items), 200)
   |> wisp.set_cookie(
     request: request,
     name: "SESSIONID",

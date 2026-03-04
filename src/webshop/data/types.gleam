@@ -35,6 +35,16 @@ pub type EffectEntry {
   EffectEntry(effect: String, short_effect: String)
 }
 
+pub type PartialItem {
+  PartialItem(
+    id: Int,
+    name: String,
+    sprite: String,
+    category: String,
+    cost: Int,
+  )
+}
+
 pub type Item {
   Item(
     id: Int,
@@ -61,7 +71,7 @@ fn decode_effect_entry() {
   decode.success(#(language, EffectEntry(effect, short_effect)))
 }
 
-pub fn item_decoder() -> decode.Decoder(Item) {
+pub fn item_decoder_json() -> decode.Decoder(Item) {
   use id <- decode.field("id", decode.int)
   use name <- decode.field("name", decode.string)
   use cost <- decode.field("cost", decode.int)

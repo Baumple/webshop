@@ -10,7 +10,7 @@ import wisp
 
 import webshop/data/db/category
 import webshop/data/db/items
-import webshop/data/types.{type Customer}
+import webshop/data/types.{type Customer, type Item}
 import webshop/error.{type WebshopInitError}
 
 pub type DBResult(a) {
@@ -196,4 +196,12 @@ pub fn insert_customer(
   |> insert.to_query
   |> sqlite.run_write_query(decode.dynamic, db)
   |> result.replace(Nil)
+}
+
+pub fn get_items(
+  db: Connection,
+  offset offset: Int,
+  count limit: Int,
+) -> Result(List(types.PartialItem), sqlight.Error) {
+  items.get_items_range(db, offset:, count: limit)
 }

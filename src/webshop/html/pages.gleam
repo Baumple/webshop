@@ -1,18 +1,24 @@
 import lustre/attribute
 import lustre/element
 import lustre/element/html.{text}
+import webshop/data/types
+
 import webshop/html/component_states/register_state
 import webshop/html/components
 import webshop/html/components/form
+import webshop/html/components/items
 import webshop/html/layout
 
-pub fn index() -> String {
-  []
+pub fn index(items: List(types.PartialItem)) -> String {
+  [items.views(items)]
   |> layout.layout("Webshop", "buy some items")
 }
 
-pub fn index_with_username(username: String) -> String {
-  []
+pub fn index_with_username(
+  username: String,
+  items: List(types.PartialItem),
+) -> String {
+  [items.views(items)]
   |> layout.layout("Webshop", "hello, " <> username <> "! let's buy some items")
 }
 

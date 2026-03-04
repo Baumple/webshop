@@ -41,12 +41,17 @@ fn handle_home_page(ctx: Context, request: Request) -> Response {
   use session_id <- middleware.require_session_id(ctx, request)
   let session = sessions.get(ctx.sessions, session_id)
   case session {
-    Ok(session) ->
+    Ok(session) -> {
+      use items <- middleware.require_partial_items(ctx)
       case session {
         option.Some(session) ->
-          wisp.html_response(pages.index_with_username(session.username), 200)
-        option.None -> wisp.html_response(pages.index(), 200)
+          wisp.html_response(
+            pages.index_with_username(session.username, items),
+            200,
+          )
+        option.None -> wisp.html_response(pages.index(items), 200)
       }
+    }
     Error(err) -> error.log_ets_error(err)
   }
 }
