@@ -45,3 +45,12 @@ pub fn require_partial_items(
     Error(err) -> error.log_sql_error(err)
   }
 }
+
+fn require_partial_item(ctx: Context, id: String, continue) -> Response {
+  todo
+}
+
+pub fn require_item(ctx: Context, id: String, continue) -> Response {
+  use partial <- require_partial_items()
+  todo
+}

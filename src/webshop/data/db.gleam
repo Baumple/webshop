@@ -205,3 +205,7 @@ pub fn get_items(
 ) -> Result(List(types.PartialItem), sqlight.Error) {
   items.get_items_range(db, offset:, count: limit)
 }
+
+pub fn get_item_by_id(db: Connection, id: Int) -> Result(Item, sqlight.Error) {
+  todo
+}
