@@ -6,7 +6,8 @@ import webshop/data/types
 import webshop/html/component_states/register_state
 import webshop/html/components
 import webshop/html/components/form
-import webshop/html/components/item_list
+import webshop/html/components/item_display
+import webshop/html/components/item_list_comp as item_list
 import webshop/html/layout
 
 pub fn index(items: List(types.PartialItem)) -> String {
@@ -47,8 +48,8 @@ pub fn login() -> String {
 }
 
 pub fn item(item: types.Item) -> String {
-  []
-  |> layout.layout("Webshop - Item" <> item.name, "please log in")
+  [item_display.view(item)]
+  |> layout.layout("Webshop - Item", item.name)
 }
 
 pub fn invalid_login() -> String {

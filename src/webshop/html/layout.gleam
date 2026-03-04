@@ -6,7 +6,7 @@ import webshop/html/components
 
 pub fn header(title: String, subtitle: String) -> element.Element(a) {
   html.header([], [
-    html.h1([], [text(title)]),
+    html.h1([], [html.a([attribute.href("/")], [text(title)])]),
     html.p([], [text(subtitle)]),
   ])
 }

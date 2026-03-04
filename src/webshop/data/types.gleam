@@ -64,6 +64,13 @@ pub type Item {
   )
 }
 
+pub fn get_sprite_or_default_sprite(item: Item) -> String {
+  option.unwrap(
+    item.sprite,
+    or: "https://github.com/PokeAPI/sprites/blob/master/sprites/items/data-card-01.png?raw=true",
+  )
+}
+
 fn decode_effect_entry() {
   use language <- decode.subfield(["language", "name"], decode.string)
   use effect <- decode.field("effect", decode.string)

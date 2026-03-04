@@ -1,3 +1,4 @@
+import gleam/int
 import gleam/option
 import webshop/error
 import webshop/router/middleware
@@ -37,8 +38,17 @@ pub fn handler(ctx: Context, request: Request) -> Response {
   }
 }
 
+fn require_int_id(id: String, continue) -> Response {
+  case int.parse(id) {
+    Ok(id) -> continue(id)
+    Error(Nil) -> wisp.bad_request("param `id` invalid")
+  }
+}
+
 fn handle_items(ctx: Context, id: String) -> Response {
-  pages.login()
+  use id <- require_int_id(id)
+  use item <- middleware.require_item(ctx, id)
+  pages.item(item)
   |> wisp.html_response(200)
 }
 

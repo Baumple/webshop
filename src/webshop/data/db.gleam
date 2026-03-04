@@ -1,3 +1,4 @@
+import webshop/data/db/db_result
 import cake/adapter/sqlite
 import cake/insert
 import cake/select
@@ -206,6 +207,6 @@ pub fn get_items(
   items.get_items_range(db, offset:, count: limit)
 }
 
-pub fn get_item_by_id(db: Connection, id: Int) -> Result(Item, sqlight.Error) {
-  todo
+pub fn get_item_by_id(db: Connection, id: Int) -> db_result.SqlResult(Item) {
+  items.get_item_by_id(db, id)
 }

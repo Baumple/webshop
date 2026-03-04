@@ -1,4 +1,5 @@
 import webshop/data/db
+import webshop/data/db/db_result
 import webshop/data/types
 import wisp.{type Request, type Response}
 
@@ -46,11 +47,10 @@ pub fn require_partial_items(
   }
 }
 
-fn require_partial_item(ctx: Context, id: String, continue) -> Response {
-  todo
-}
-
-pub fn require_item(ctx: Context, id: String, continue) -> Response {
-  use partial <- require_partial_items()
-  todo
+pub fn require_item(ctx: Context, id: Int, continue) -> Response {
+  case db.get_item_by_id(ctx.db, id) {
+    db_result.Success(item) -> continue(item)
+    db_result.NotFound -> wisp.not_found()
+    db_result.FailedQuery(err) -> error.log_sql_error(err)
+  }
 }

@@ -178,7 +178,6 @@ pub fn get_items_range(
   default_partial_item_query()
   |> select.offset(offset)
   |> select.limit(limit)
-  |> select.order_by_desc("cost")
   |> select.to_query()
   |> sqlite.run_read_query(partial_item_decoder(), db)
 }
@@ -206,12 +205,11 @@ fn get_partial_item_by_id(db: Connection, id: Int) -> SqlResult(PartialItem) {
     Ok([partial]) -> db_result.Success(partial)
     Ok([]) -> db_result.NotFound
     Ok(_) -> panic as "Illegal state of data."
-    Error(err) -> db_result.Failure(err)
+    Error(err) -> db_result.FailedQuery(err)
   }
 }
 
 fn decode_effect_entry() {
-  use _item_id <- decode.field(0, decode.int)
   use language <- decode.field(1, decode.string)
   use effect <- decode.field(2, decode.string)
   use short_effect <- decode.field(3, decode.string)
@@ -234,13 +232,18 @@ fn get_effect_entries_by_id(
   }
 }
 
+fn attribute_decoder() -> decode.Decoder(String) {
+  use attribute <- decode.field(1, decode.string)
+  decode.success(attribute)
+}
+
 fn get_attributes_by_id(db: Connection, id: Int) -> SqlResult(List(String)) {
   let res =
     select.new()
     |> select.from_table("item_attributes")
     |> select.where(where.eq(where.col("item_id"), where.int(id)))
     |> select.to_query()
-    |> sqlite.run_read_query(decode.string, db)
+    |> sqlite.run_read_query(attribute_decoder(), db)
 
   case res {
     Ok(attributes) -> db_result.Success(attributes)
@@ -248,24 +251,43 @@ fn get_attributes_by_id(db: Connection, id: Int) -> SqlResult(List(String)) {
   }
 }
 
-fn decode_item_name() -> SqlResult(#(Stirng, String)) {
+fn decode_item_name() -> decode.Decoder(#(String, String)) {
   use language <- decode.field(1, decode.string)
   use name <- decode.field(2, decode.string)
   decode.success(#(language, name))
 }
 
-fn get_item_names_by_id(db: Connection, id: Int) -> SqlResult(Item) {
-  select.new()
-  |> select.from_table("item_names")
-  |> select.where(where.eq(where.col("item_id"), where.int(id)))
-  |> select.to_query()
-  |> sqlite.run_read_query(decode_item_name(), db)
+fn get_item_names_by_id(
+  db: Connection,
+  id: Int,
+) -> SqlResult(dict.Dict(String, String)) {
+  let res =
+    select.new()
+    |> select.from_table("item_names")
+    |> select.where(where.eq(where.col("item_id"), where.int(id)))
+    |> select.to_query()
+    |> sqlite.run_read_query(decode_item_name(), db)
+  case res {
+    Ok(decoded) -> db_result.Success(dict.from_list(decoded))
+    Error(err) -> db_result.FailedQuery(err)
+  }
 }
 
 pub fn get_item_by_id(db: Connection, id: Int) -> SqlResult(Item) {
   use partial <- db_result.try(get_partial_item_by_id(db, id))
+  let PartialItem(id:, name:, sprite:, category:, cost:) = partial
   use effect_entries <- db_result.try(get_effect_entries_by_id(db, id))
   use attributes <- db_result.try(get_attributes_by_id(db, id))
+  use names <- db_result.try(get_item_names_by_id(db, id))
 
-  Error(Nil)
+  db_result.Success(types.Item(
+    id:,
+    name:,
+    cost:,
+    category:,
+    attributes:,
+    names:,
+    effect_entries:,
+    sprite: option.Some(sprite),
+  ))
 }
