@@ -18,12 +18,13 @@ pub fn footer() -> element.Element(a) {
       [
         attribute.target("blank"),
         attribute.href("https://github.com/baumple/webshop"),
+        class("link"),
       ],
       [
         text("Source Code (Github)"),
       ],
     ),
-    html.a([attribute.href("/users/logout")], [text("Log out ➡️")]),
+    html.a([class("link"), attribute.href("/users/logout")], [text("Log out ➡️")]),
   ])
 }
 

@@ -6,11 +6,11 @@ import webshop/data/types
 import webshop/html/component_states/register_state
 import webshop/html/components
 import webshop/html/components/form
-import webshop/html/components/items
+import webshop/html/components/item_list
 import webshop/html/layout
 
 pub fn index(items: List(types.PartialItem)) -> String {
-  [items.views(items)]
+  [item_list.views(items)]
   |> layout.layout("Webshop", "buy some items")
 }
 
@@ -18,7 +18,7 @@ pub fn index_with_username(
   username: String,
   items: List(types.PartialItem),
 ) -> String {
-  [items.views(items)]
+  [item_list.views(items)]
   |> layout.layout("Webshop", "hello, " <> username <> "! let's buy some items")
 }
 
@@ -44,6 +44,11 @@ fn login_form() -> element.Element(a) {
 pub fn login() -> String {
   [login_form()]
   |> layout.layout("Webshop - Login", "please log in")
+}
+
+pub fn item(item: types.Item) -> String {
+  []
+  |> layout.layout("Webshop - Item" <> item.name, "please log in")
 }
 
 pub fn invalid_login() -> String {

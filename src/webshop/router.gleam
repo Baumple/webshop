@@ -27,6 +27,7 @@ pub fn handler(ctx: Context, request: Request) -> Response {
   case wisp.path_segments(request) {
     ["login"] -> login.handle(ctx, request)
     ["users", ..] -> users.handle(ctx, request)
+    ["items", id] -> handle_items(ctx, id)
     ["cookies", "clear"] -> {
       let assert Ok(_) = sessions.clear(ctx.sessions)
       handle_home_page(ctx, request)
@@ -34,6 +35,11 @@ pub fn handler(ctx: Context, request: Request) -> Response {
     [] -> handle_home_page(ctx, request)
     _ -> wisp.not_found()
   }
+}
+
+fn handle_items(ctx: Context, id: String) -> Response {
+  pages.login()
+  |> wisp.html_response(200)
 }
 
 // TODO: let users view home page without being logged in
