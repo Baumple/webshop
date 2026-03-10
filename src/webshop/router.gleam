@@ -1,12 +1,15 @@
 import gleam/int
+import gleam/list
 import gleam/option
-import webshop/error
-import webshop/router/middleware
+import gleam/result
 import wisp.{type Request, type Response}
 
 import webshop/context.{type Context}
+import webshop/data/db/query
+import webshop/html/component_states/item_list_state
 import webshop/html/pages
 import webshop/router/login
+import webshop/router/middleware
 import webshop/router/users
 import webshop/sessions
 
@@ -52,22 +55,44 @@ fn handle_items(ctx: Context, id: String) -> Response {
   |> wisp.html_response(200)
 }
 
-// TODO: let users view home page without being logged in
 fn handle_home_page(ctx: Context, request: Request) -> Response {
-  use session_id <- middleware.require_session_id(ctx, request)
-  let session = sessions.get(ctx.sessions, session_id)
+  use session <- middleware.get_session_if_exists(ctx, request)
+
+  let query = query.from_request(request)
+  use item_count <- middleware.get_item_count(ctx, query)
+
+  let index = query.get_index(query)
+  let index = case item_count % 20 == 0 {
+    True -> int.clamp(index, 0, item_count / 20 - 1)
+    False -> int.clamp(index, 0, item_count / 20)
+  }
+
+  use items <- middleware.get_partial_items(
+    ctx,
+    query,
+    offset: index * 20,
+    limit: 20,
+  )
+  use categories <- middleware.get_categories(ctx)
+
+  let state =
+    item_list_state.ItemListState(
+      items:,
+      item_count:,
+      pagination_index: index,
+      current_query: query,
+      categories:,
+    )
+
   case session {
-    Ok(session) -> {
-      use items <- middleware.require_partial_items(ctx)
-      case session {
-        option.Some(session) ->
-          wisp.html_response(
-            pages.index_with_username(session.username, items),
-            200,
-          )
-        option.None -> wisp.html_response(pages.index(items), 200)
-      }
+    // valid session
+    option.Some(session) -> {
+      wisp.html_response(
+        pages.index_with_username(session.username, state),
+        200,
+      )
     }
-    Error(err) -> error.log_ets_error(err)
+    // invalid session or not logged in
+    option.None -> wisp.html_response(pages.index(state), 200)
   }
 }

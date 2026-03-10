@@ -36,3 +36,80 @@ pub fn shopping_cart() -> element.Element(a) {
     ],
   )
 }
+
+pub fn arrow_right() -> element.Element(a) {
+  svg.svg(
+    [
+      attribute("xmlns", "http://www.w3.org/2000/svg"),
+      attribute("fill", "none"),
+      attribute("viewBox", "0 0 24 24"),
+    ],
+    [
+      svg.g(
+        [attribute("stroke-width", "0"), attribute.id("SVGRepo_bgCarrier")],
+        [],
+      ),
+      svg.g(
+        [
+          attribute("stroke-linejoin", "round"),
+          attribute("stroke-linecap", "round"),
+          attribute.id("SVGRepo_tracerCarrier"),
+        ],
+        [],
+      ),
+      svg.g([attribute.id("SVGRepo_iconCarrier")], [
+        svg.path([
+          attribute("data-darkreader-inline-stroke", ""),
+          attribute(
+            "style",
+            "--darkreader-inline-stroke: var(--darkreader-text-4af262, #51f268);",
+          ),
+          attribute("stroke-linejoin", "round"),
+          attribute("stroke-linecap", "round"),
+          attribute("stroke-width", "2"),
+          attribute("stroke", "#4AF262"),
+          attribute("d", "M6 12H18M18 12L13 7M18 12L13 17"),
+        ]),
+      ]),
+    ],
+  )
+}
+
+pub fn arrow_left() -> element.Element(a) {
+  svg.svg(
+    [
+      attribute("transform", "rotate(180)"),
+      attribute("xmlns", "http://www.w3.org/2000/svg"),
+      attribute("fill", "none"),
+      attribute("viewBox", "0 0 24 24"),
+    ],
+    [
+      svg.g(
+        [attribute("stroke-width", "0"), attribute.id("SVGRepo_bgCarrier")],
+        [],
+      ),
+      svg.g(
+        [
+          attribute("stroke-linejoin", "round"),
+          attribute("stroke-linecap", "round"),
+          attribute.id("SVGRepo_tracerCarrier"),
+        ],
+        [],
+      ),
+      svg.g([attribute.id("SVGRepo_iconCarrier")], [
+        svg.path([
+          attribute("data-darkreader-inline-stroke", ""),
+          attribute(
+            "style",
+            "--darkreader-inline-stroke: var(--darkreader-text-4af262, #51f268);",
+          ),
+          attribute("stroke-linejoin", "round"),
+          attribute("stroke-linecap", "round"),
+          attribute("stroke-width", "2"),
+          attribute("stroke", "#4AF262"),
+          attribute("d", "M6 12H18M18 12L13 7M18 12L13 17"),
+        ]),
+      ]),
+    ],
+  )
+}

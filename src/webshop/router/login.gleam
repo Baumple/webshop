@@ -1,10 +1,11 @@
 import argus
 import gleam/float
+import gleam/http
 import gleam/list
-import gleam/option
 import gleam/result
 import gleam/time/duration
-import webshop/data/db/helper
+import webshop/data/db/query
+import webshop/html/component_states/item_list_state
 import webshop/router/middleware
 import webshop/sessions
 import wisp.{type Request, type Response}
@@ -13,7 +14,17 @@ import webshop/context.{type Context}
 import webshop/data/db
 import webshop/html/pages
 
+fn handle_get(request: Request, continue) -> Response {
+  case request.method {
+    http.Get ->
+      pages.login()
+      |> wisp.html_response(200)
+    _ -> continue()
+  }
+}
+
 pub fn handle(ctx: Context, request: Request) -> Response {
+  use <- handle_get(request)
   use formdata <- wisp.require_form(request)
   let result = {
     use username <- result.try(list.key_find(formdata.values, "username"))
@@ -67,9 +78,22 @@ fn perform_login(
 fn create_session(request: Request, ctx: Context, username: String) -> Response {
   let id = sessions.create_session(ctx.sessions, username:)
 
-  use items <- middleware.require_partial_items(ctx)
+  let query = query.empty()
+  use items <- middleware.get_partial_items(ctx, query, 0, 20)
+  use item_count <- middleware.get_item_count(ctx, query)
+  use index <- middleware.get_pagination_index(request)
+  use categories <- middleware.get_categories(ctx)
 
-  wisp.html_response(pages.index_with_username(username, items), 200)
+  let state =
+    item_list_state.ItemListState(
+      items:,
+      item_count:,
+      pagination_index: index,
+      current_query: query.empty(),
+      categories:,
+    )
+
+  wisp.html_response(pages.index_with_username(username, state), 200)
   |> wisp.set_cookie(
     request: request,
     name: "SESSIONID",

@@ -1,4 +1,3 @@
-import webshop/data/db/db_result
 import cake/adapter/sqlite
 import cake/insert
 import cake/select
@@ -7,10 +6,12 @@ import gleam/dynamic/decode
 import gleam/erlang/process
 import gleam/result
 import sqlight.{type Connection}
+import webshop/data/db/db_result
 import wisp
 
 import webshop/data/db/category
 import webshop/data/db/items
+import webshop/data/db/query
 import webshop/data/types.{type Customer, type Item}
 import webshop/error.{type WebshopInitError}
 
@@ -201,12 +202,21 @@ pub fn insert_customer(
 
 pub fn get_items(
   db: Connection,
+  query: query.Query,
   offset offset: Int,
   count limit: Int,
 ) -> Result(List(types.PartialItem), sqlight.Error) {
-  items.get_items_range(db, offset:, count: limit)
+  items.get_partial_items_range(db, query, offset:, count: limit)
 }
 
 pub fn get_item_by_id(db: Connection, id: Int) -> db_result.SqlResult(Item) {
   items.get_item_by_id(db, id)
+}
+
+pub fn get_item_count(db: Connection, query: query.Query) -> Result(Int, sqlight.Error) {
+  items.get_item_count(db, query)
+}
+
+pub fn get_categories(db: Connection) {
+  category.get_categories(db)
 }

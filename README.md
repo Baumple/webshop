@@ -53,6 +53,8 @@ die bequeme Library `argus` gibt.
 
 
 # TODO:
+- invoices
 - duplicate username
 - form can be sent with invalid data
 - register confirmation
+- ip ratelimiting

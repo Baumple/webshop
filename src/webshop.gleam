@@ -41,9 +41,8 @@ pub fn main() -> Nil {
   wisp.configure_logger()
   let assert Ok(_) =
     radiate.new()
-    |> radiate.add_dir("src/webshop/html/")
-    |> radiate.add_dir("src/webshop/router/")
-    |> radiate.start
+    |> radiate.add_dir("src/")
+    |> radiate.start()
   case context.new() {
     Error(err) -> handle_startup_error(err)
     Ok(context) -> start_server(context)

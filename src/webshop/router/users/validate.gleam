@@ -110,7 +110,13 @@ fn prevent_duplicate_usernames(
 ) -> Response {
   case db.username_exists(ctx.db, username) {
     Ok(True) -> continue()
-    Ok(False) -> todo
+    Ok(False) ->
+      form.username_input(
+        username:,
+        state: form.Invalid("Nutzername existiert bereits."),
+      )
+      |> element.to_document_string()
+      |> wisp.html_response(200)
     Error(err) -> error.log_sql_error(err)
   }
 }

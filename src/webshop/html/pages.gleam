@@ -3,6 +3,7 @@ import lustre/element
 import lustre/element/html.{text}
 import webshop/data/types
 
+import webshop/html/component_states/item_list_state.{type ItemListState}
 import webshop/html/component_states/register_state
 import webshop/html/components
 import webshop/html/components/form
@@ -10,16 +11,13 @@ import webshop/html/components/item_display
 import webshop/html/components/item_list_comp as item_list
 import webshop/html/layout
 
-pub fn index(items: List(types.PartialItem)) -> String {
-  [item_list.views(items)]
+pub fn index(state: ItemListState) -> String {
+  [item_list.views(state)]
   |> layout.layout("Webshop", "buy some items")
 }
 
-pub fn index_with_username(
-  username: String,
-  items: List(types.PartialItem),
-) -> String {
-  [item_list.views(items)]
+pub fn index_with_username(username: String, state: ItemListState) -> String {
+  [item_list.views(state)]
   |> layout.layout("Webshop", "hello, " <> username <> "! let's buy some items")
 }
 
@@ -37,7 +35,7 @@ fn login_form() -> element.Element(a) {
         html.button([attribute.type_("submit")], [html.text("> Einloggen <")]),
       ]),
     ]),
-    components.separator(),
+    components.vert_separator(),
     form.register_form(register_state.new()),
   ])
 }

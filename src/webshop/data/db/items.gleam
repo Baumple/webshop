@@ -1,4 +1,5 @@
 import cake/adapter/sqlite
+import cake/combined
 import cake/insert
 import cake/select
 import cake/where
@@ -6,13 +7,15 @@ import gleam/bool
 import gleam/dict
 import gleam/dynamic/decode
 import gleam/list
-import gleam/option
+import gleam/option.{None, Some}
 import gleam/result
+import gleam/string
 import sqlight.{type Connection}
 import wisp
 
 import webshop/data/db/db_result.{type SqlResult}
 import webshop/data/db/helper
+import webshop/data/db/query
 import webshop/data/poke_api
 import webshop/data/types.{
   type EffectEntry, type Item, type PartialItem, EffectEntry, PartialItem,
@@ -170,16 +173,59 @@ pub fn partial_item_decoder() -> decode.Decoder(PartialItem) {
   decode.success(PartialItem(id:, name:, sprite:, category:, cost:))
 }
 
-pub fn get_items_range(
+fn where_query(s: combined.Select, query: query.Query) -> combined.Select {
+  let or = case query.text {
+    None -> []
+    Some(text) -> [where.like(where.col("name"), "%" <> text <> "%")]
+  }
+  let and = case query.category {
+    None -> or
+    Some(cat) -> [where.eq(where.col("category"), where.string(cat)), ..or]
+  }
+  case and {
+    [] -> s
+    [_, ..] -> select.where(s, where.and(and))
+  }
+}
+
+pub fn get_partial_items_range(
   db: Connection,
+  query: query.Query,
   offset offset: Int,
   count limit: Int,
 ) -> Result(List(PartialItem), sqlight.Error) {
   default_partial_item_query()
   |> select.offset(offset)
   |> select.limit(limit)
+  |> select.order_by_asc("cost")
+  |> where_query(query)
   |> select.to_query()
   |> sqlite.run_read_query(partial_item_decoder(), db)
+}
+
+pub fn get_item_count(
+  db: Connection,
+  query: query.Query,
+) -> Result(Int, sqlight.Error) {
+  let res =
+    select.new()
+    |> select.select_col("COUNT(*) as count")
+    |> select.from_table("items")
+    |> where_query(query)
+    |> select.to_query()
+    |> sqlite.run_read_query(
+      {
+        use count <- decode.field(0, decode.int)
+        decode.success(count)
+      },
+      db,
+    )
+
+  case res {
+    Ok([count]) -> Ok(count)
+    Ok(_) -> panic as "Invalid sql data."
+    Error(err) -> Error(err)
+  }
 }
 
 fn default_partial_item_query() {
@@ -288,6 +334,6 @@ pub fn get_item_by_id(db: Connection, id: Int) -> SqlResult(Item) {
     attributes:,
     names:,
     effect_entries:,
-    sprite: option.Some(sprite),
+    sprite: Some(sprite),
   ))
 }

@@ -6,7 +6,11 @@ pub fn separator() -> element.Element(a) {
   html.hr([class("separator")])
 }
 
-pub fn dotted_separator() -> element.Element(a) {
+pub fn vert_separator() -> element.Element(a) {
+  html.hr([class("vert-separator")])
+}
+
+pub fn dashed_separator() -> element.Element(a) {
   html.hr([class("dashed-separator")])
 }
 

@@ -1,5 +1,6 @@
 import cake/adapter/sqlite
 import cake/insert
+import cake/join
 import cake/select
 import cake/where
 import gleam/dict
@@ -7,9 +8,9 @@ import gleam/dynamic/decode
 import gleam/list
 import gleam/result
 import sqlight.{type Connection}
-import webshop/data/db/helper
 import wisp
 
+import webshop/data/db/helper
 import webshop/data/poke_api
 import webshop/data/types.{type Category}
 import webshop/error.{type WebshopInitError}
@@ -97,4 +98,21 @@ fn insert_category_names(
   }
   |> result.all
   |> result.replace(Nil)
+}
+
+pub fn get_categories(db: Connection) -> Result(List(types.PartialCategory), sqlight.Error) {
+  select.new()
+  |> select.select_cols(["categories.name", "cn.name"])
+  |> select.from_table("categories")
+  |> select.join(
+    join.table("category_names")
+    |> join.inner(
+      on: where.eq(where.col("id"), where.col("cn.category_id")),
+      alias: "cn",
+    ),
+  )
+  |> select.where(where.eq(where.col("cn.language"), where.string("en")))
+  |> select.order_by_asc(by: "cn.name")
+  |> select.to_query()
+  |> sqlite.run_read_query(types.partial_category_decoder(), db)
 }

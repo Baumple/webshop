@@ -13,3 +13,4 @@ pub fn try(res: SqlResult(a), map: fn(a) -> SqlResult(b)) -> SqlResult(b) {
     FailedQuery(err) -> FailedQuery(err)
   }
 }
+

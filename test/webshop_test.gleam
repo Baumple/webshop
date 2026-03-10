@@ -1,6 +1,7 @@
 import gleam/option
 import gleeunit
 import webshop/data/db
+import webshop/data/db/query
 import webshop/data/poke_api
 
 import webshop/sessions
@@ -26,6 +27,12 @@ pub fn fetch_data_test() -> Nil {
 
 pub fn get_items_test() -> Nil {
   let assert Ok(db) = db.open()
-  let assert Ok(_) = db.get_items(db, offset: 0, count: 20)
+  let assert Ok(_) = db.get_items(db, query.empty(), offset: 0, count: 20)
+  Nil
+}
+
+pub fn get_categories_test() -> Nil {
+  let assert Ok(db) = db.open()
+  let assert Ok(_) = db.get_categories(db)
   Nil
 }
