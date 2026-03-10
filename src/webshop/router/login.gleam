@@ -4,6 +4,7 @@ import gleam/http
 import gleam/list
 import gleam/result
 import gleam/time/duration
+import webshop/data/db/db_result
 import webshop/data/db/query
 import webshop/html/component_states/item_list_state
 import webshop/router/middleware
@@ -57,18 +58,18 @@ fn perform_login(
   password: String,
 ) -> Response {
   case db.get_username_password_hash(ctx.db, username) {
-    db.NotFound -> {
+    db_result.NotFound -> {
       use <- dummy_hash(password)
       invalid_login(ctx)
     }
-    db.Found(hash) -> {
+    db_result.Success(hash) -> {
       let assert Ok(is_valid) = argus.verify(hash, password)
       case is_valid {
         True -> create_session(request, ctx, username)
         False -> invalid_login(ctx)
       }
     }
-    db.SqlightError(err) -> {
+    db_result.FailedQuery(err) -> {
       wisp.log_critical("Database error: " <> err.message)
       wisp.internal_server_error()
     }

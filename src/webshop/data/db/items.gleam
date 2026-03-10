@@ -1,6 +1,7 @@
 import cake/adapter/sqlite
 import cake/combined
 import cake/insert
+import cake/join
 import cake/select
 import cake/where
 import gleam/bool
@@ -9,7 +10,6 @@ import gleam/dynamic/decode
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/result
-import gleam/string
 import sqlight.{type Connection}
 import wisp
 
@@ -164,6 +164,61 @@ fn insert_items(db: Connection, items: List(Item)) -> Result(Nil, sqlight.Error)
   insert_item_attributes(db, items)
 }
 
+fn where_attributes_query(
+  s: combined.Select,
+  query: query.Query,
+) -> combined.Select {
+  case query.attribute {
+    option.Some(attr) ->
+      select.join(
+        s,
+        join.inner(
+          join.table("item_attributes"),
+          on: where.and([
+            where.eq(where.col("items.id"), where.col("attributes.item_id")),
+            where.eq(where.col("attributes.attribute"), where.string(attr)),
+          ]),
+          alias: "attributes",
+        ),
+      )
+    option.None -> s
+  }
+}
+
+fn where_category_query(
+  s: combined.Select,
+  query: query.Query,
+) -> combined.Select {
+  case query.category {
+    None -> s
+    Some(cat) ->
+      select.where(s, where.eq(where.col("category"), where.string(cat)))
+  }
+}
+
+fn where_text_query(s: combined.Select, query: query.Query) -> combined.Select {
+  case query.text {
+    None -> s
+    Some(text) ->
+      select.where(s, where.like(where.col("name"), "%" <> text <> "%"))
+  }
+}
+
+fn where_query(s: combined.Select, query: query.Query) -> combined.Select {
+  s
+  |> where_text_query(query)
+  |> where_category_query(query)
+  |> where_attributes_query(query)
+}
+
+const partial_item_cols = [
+  "id",
+  "name",
+  "sprite",
+  "category",
+  "cost",
+]
+
 pub fn partial_item_decoder() -> decode.Decoder(PartialItem) {
   use id <- decode.field(0, decode.int)
   use name <- decode.field(1, decode.string)
@@ -173,28 +228,15 @@ pub fn partial_item_decoder() -> decode.Decoder(PartialItem) {
   decode.success(PartialItem(id:, name:, sprite:, category:, cost:))
 }
 
-fn where_query(s: combined.Select, query: query.Query) -> combined.Select {
-  let or = case query.text {
-    None -> []
-    Some(text) -> [where.like(where.col("name"), "%" <> text <> "%")]
-  }
-  let and = case query.category {
-    None -> or
-    Some(cat) -> [where.eq(where.col("category"), where.string(cat)), ..or]
-  }
-  case and {
-    [] -> s
-    [_, ..] -> select.where(s, where.and(and))
-  }
-}
-
 pub fn get_partial_items_range(
   db: Connection,
   query: query.Query,
   offset offset: Int,
   count limit: Int,
 ) -> Result(List(PartialItem), sqlight.Error) {
-  default_partial_item_query()
+  select.new()
+  |> select.select_cols(partial_item_cols)
+  |> select.from_table("items")
   |> select.offset(offset)
   |> select.limit(limit)
   |> select.order_by_asc("cost")
@@ -228,21 +270,11 @@ pub fn get_item_count(
   }
 }
 
-fn default_partial_item_query() {
-  select.new()
-  |> select.select_cols([
-    "id",
-    "name",
-    "sprite",
-    "category",
-    "cost",
-  ])
-  |> select.from_table("items")
-}
-
 fn get_partial_item_by_id(db: Connection, id: Int) -> SqlResult(PartialItem) {
   let res =
-    default_partial_item_query()
+    select.new()
+    |> select.select_cols(partial_item_cols)
+    |> select.from_table("items")
     |> select.where(where.eq(where.col("id"), where.int(id)))
     |> select.to_query()
     |> sqlite.run_read_query(partial_item_decoder(), db)
@@ -256,9 +288,9 @@ fn get_partial_item_by_id(db: Connection, id: Int) -> SqlResult(PartialItem) {
 }
 
 fn decode_effect_entry() {
-  use language <- decode.field(1, decode.string)
-  use effect <- decode.field(2, decode.string)
-  use short_effect <- decode.field(3, decode.string)
+  use language <- decode.field(0, decode.string)
+  use effect <- decode.field(1, decode.string)
+  use short_effect <- decode.field(2, decode.string)
   decode.success(#(language, EffectEntry(effect:, short_effect:)))
 }
 
@@ -268,6 +300,7 @@ fn get_effect_entries_by_id(
 ) -> SqlResult(dict.Dict(String, EffectEntry)) {
   let res =
     select.new()
+    |> select.select_cols(["language", "effect", "short_effect"])
     |> select.from_table("item_effect_entries")
     |> select.where(where.eq(where.col("item_id"), where.int(id)))
     |> select.to_query()
@@ -336,4 +369,22 @@ pub fn get_item_by_id(db: Connection, id: Int) -> SqlResult(Item) {
     effect_entries:,
     sprite: Some(sprite),
   ))
+}
+
+pub fn get_cart_items(
+  db: Connection,
+  username: String,
+) -> Result(types.Cart, sqlight.Error) {
+  select.new()
+  |> select.select_cols(partial_item_cols)
+  |> select.from_table(name: "carts")
+  |> select.join(join.inner(
+    join.table("items"),
+    alias: "items",
+    on: where.eq(where.col("carts.item_id"), where.col("items.id")),
+  ))
+  |> select.where(where.eq(where.col("carts.username"), where.string(username)))
+  |> select.to_query()
+  |> sqlite.run_read_query(partial_item_decoder(), db)
+  |> result.map(types.Cart(username:, items: _))
 }

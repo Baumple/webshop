@@ -48,10 +48,6 @@ pub fn empty() -> Query {
 
 pub fn to_string(q: Query) -> String {
   let fields = []
-  // let fields = case q.index {
-  //   Some(index) -> ["index=" <> int.to_string(index), ..fields]
-  //   None -> fields
-  // }
   let fields = case q.attribute {
     Some(attribute) -> ["attribute=" <> attribute, ..fields]
     None -> fields

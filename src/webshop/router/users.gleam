@@ -162,6 +162,7 @@ fn perform_register(ctx: Context, state: RegisterInfo) -> Response {
   use hash <- hash_password(state.password)
   let res =
     db.insert_customer(
+      ctx.db,
       Customer(
         username: state.username,
         name: state.name,
@@ -174,7 +175,6 @@ fn perform_register(ctx: Context, state: RegisterInfo) -> Response {
         institution: state.institution,
         password_hash: hash.encoded_hash,
       ),
-      ctx.db,
     )
 
   case res {

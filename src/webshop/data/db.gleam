@@ -6,20 +6,15 @@ import gleam/dynamic/decode
 import gleam/erlang/process
 import gleam/result
 import sqlight.{type Connection}
-import webshop/data/db/db_result
 import wisp
 
 import webshop/data/db/category
+import webshop/data/db/customer
+import webshop/data/db/db_result.{type SqlResult as DBResult}
 import webshop/data/db/items
 import webshop/data/db/query
 import webshop/data/types.{type Customer, type Item}
 import webshop/error.{type WebshopInitError}
-
-pub type DBResult(a) {
-  Found(a)
-  NotFound
-  SqlightError(sqlight.Error)
-}
 
 pub fn open() -> Result(Connection, WebshopInitError) {
   use db <- result.try(
@@ -90,35 +85,18 @@ const scheme = "
     hash         TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS cart_items (
+    username TEXT NOT NULL REFERENCES customers(username),
+    item_id  INT NOT NULL REFERENCES items(id),
+    count    INT NOT NULL CHECK (count > 0)
+  );
+
 "
 
 fn init_scheme(db: Connection) -> Result(Connection, WebshopInitError) {
   case sqlight.exec(scheme, db) {
     Error(err) -> Error(error.DBError(err))
     Ok(Nil) -> Ok(db)
-  }
-}
-
-fn clear_database(
-  db: Connection,
-  continue,
-) -> Result(Connection, WebshopInitError) {
-  let stmts =
-    "
-  DELETE FROM categories;
-  DELETE FROM item_names;
-  DELETE FROM item_attributes;
-  DELETE FROM categories;
-  DELETE FROM category_names;
-  DELETE FROM customers;
-  "
-
-  case sqlight.exec(stmts, db) {
-    Ok(_) -> {
-      wisp.log_info("Cleared database.")
-      continue()
-    }
-    Error(err) -> Error(error.DBError(err))
   }
 }
 
@@ -129,75 +107,25 @@ fn update_data(db: Connection) -> Result(Nil, WebshopInitError) {
   Ok(Nil)
 }
 
-const username_password_query = "
-  SELECT hash FROM customers WHERE username = ?
-"
-
 pub fn get_username_password_hash(
   db: Connection,
   username: String,
 ) -> DBResult(String) {
-  let res =
-    sqlight.query(
-      username_password_query,
-      db,
-      [sqlight.text(username)],
-      decode.list(decode.string),
-    )
-
-  case res {
-    Ok([[hash]]) -> Found(hash)
-    Ok([]) -> NotFound
-    Error(err) -> SqlightError(err)
-    _ -> panic as "Invalid sql data."
-  }
+  customer.get_username_password_hash(db, username)
 }
 
 pub fn username_exists(
   db: Connection,
   username: String,
 ) -> Result(Bool, sqlight.Error) {
-  let res =
-    select.new()
-    |> select.from_table("customers")
-    |> select.select_col("username")
-    |> select.where(where.eq(where.col("username"), where.string(username)))
-    |> select.limit(1)
-    |> select.to_query
-    |> sqlite.run_read_query(decode.dynamic, db)
-
-  case res {
-    Ok([]) -> Ok(False)
-    Ok([_]) -> Ok(True)
-    Ok(_) -> panic as "Multiple users with same username"
-    Error(err) -> Error(err)
-  }
+  customer.username_exists(db, username)
 }
 
 pub fn insert_customer(
-  customer: Customer,
   db: Connection,
+  customer: Customer,
 ) -> Result(Nil, sqlight.Error) {
-  insert.from_records(
-    table_name: "customers",
-    columns: [
-      "username",
-      "name",
-      "surname",
-      "street",
-      "house_number",
-      "postal_code",
-      "location",
-      "bin",
-      "institution",
-      "hash",
-    ],
-    records: [customer],
-    encoder: types.customer_to_insert_row,
-  )
-  |> insert.to_query
-  |> sqlite.run_write_query(decode.dynamic, db)
-  |> result.replace(Nil)
+  customer.insert_customer(customer, db)
 }
 
 pub fn get_items(
@@ -213,10 +141,20 @@ pub fn get_item_by_id(db: Connection, id: Int) -> db_result.SqlResult(Item) {
   items.get_item_by_id(db, id)
 }
 
-pub fn get_item_count(db: Connection, query: query.Query) -> Result(Int, sqlight.Error) {
+pub fn get_item_count(
+  db: Connection,
+  query: query.Query,
+) -> Result(Int, sqlight.Error) {
   items.get_item_count(db, query)
 }
 
 pub fn get_categories(db: Connection) {
   category.get_categories(db)
+}
+
+pub fn get_user_cart(
+  db: Connection,
+  username: String,
+) -> Result(types.Cart, sqlight.Error) {
+  items.get_cart_items(db, username)
 }

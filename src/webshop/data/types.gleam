@@ -175,3 +175,7 @@ pub fn customer_to_insert_row(c: Customer) -> insert.InsertRow {
     insert.string(password_hash),
   ])
 }
+
+pub type Cart {
+  Cart(username: String, items: List(PartialItem))
+}
