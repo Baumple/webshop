@@ -110,16 +110,6 @@ pub fn item_decoder_json() -> Decoder(Item) {
     decode.list(decode_effect_entry()),
   )
   let effect_entries = dict.from_list(effect_entries)
-  use sprites <- decode.field(
-    "sprites",
-    decode.dict(decode.string, decode.string),
-  )
-  case dict.to_list(sprites) {
-    [#("default", _)] -> Nil
-    _ -> {
-      panic
-    }
-  }
   use sprite <- decode.subfield(
     ["sprites", "default"],
     decode.optional(decode.string),
