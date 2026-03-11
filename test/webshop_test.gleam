@@ -2,12 +2,12 @@ import gleam/list
 import gleam/option
 import gleam/result
 import gleeunit
-import webshop/data/db
-import webshop/data/db/query
-import webshop/data/poke_api
-import webshop/data/types
+import pokeshop/data/db
+import pokeshop/data/db/query
+import pokeshop/data/poke_api
+import pokeshop/data/types
 
-import webshop/sessions
+import pokeshop/sessions
 
 pub fn main() -> Nil {
   gleeunit.main()

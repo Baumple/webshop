@@ -512,6 +512,42 @@ p, h4 {
   margin-bottom: auto;
 }
 
+.invoices {
+}
+
+.invoice {
+  border: solid 1px;
+  display: grid;
+  margin-bottom: 2em;
+}
+
+.invoice-entry {
+  padding: 0;
+  height: 2em;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  padding: 0;
+  margin-top: auto;
+  margin-bottom: auto;
+  border-bottom: dashed 1px;
+
+  align-items: center;
+
+  background: #00000055;
+}
+
+.invoice-title {
+  margin-top: auto;
+  margin-bottom: auto;
+  height: 2em;
+  text-decoration: underline;
+}
+
+.invoice-total {
+  font-weight: bold;
+  margin: 1em;
+}
+
 @media screen {
   .crt {
     animation: scanlines infinite 5s linear;
