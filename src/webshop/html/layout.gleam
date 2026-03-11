@@ -1,15 +1,10 @@
+import webshop/html/component_states/header_state
 import lustre/attribute.{attribute, class}
 import lustre/element
 import lustre/element/html.{text}
 
 import webshop/html/components
-
-pub fn header(title: String, subtitle: String) -> element.Element(a) {
-  html.header([], [
-    html.h1([], [html.a([attribute.href("/")], [text(title)])]),
-    html.p([], [text(subtitle)]),
-  ])
-}
+import webshop/html/components/header
 
 pub fn footer() -> element.Element(a) {
   html.footer([], [
@@ -32,6 +27,7 @@ pub fn layout(
   body: List(element.Element(a)),
   title: String,
   subtitle: String,
+  header_state: header_state.HeaderState,
 ) -> String {
   html.html([attribute("lang", "de")], [
     html.head([], [
@@ -55,7 +51,7 @@ pub fn layout(
       ),
     ]),
     html.body([], [
-      header(title, subtitle),
+      header.view(title, subtitle, header_state),
       components.separator(),
       html.main([class("crt")], body),
       components.separator(),

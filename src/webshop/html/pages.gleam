@@ -1,7 +1,9 @@
 import lustre/attribute
 import lustre/element
 import lustre/element/html.{text}
-import webshop/data/types
+import webshop/data/types.{type Cart}
+import webshop/html/component_states/header_state.{type HeaderState}
+import webshop/html/components/shopping_cart
 
 import webshop/html/component_states/item_list_state.{type ItemListState}
 import webshop/html/component_states/register_state
@@ -11,14 +13,25 @@ import webshop/html/components/item_display
 import webshop/html/components/item_list_comp as item_list
 import webshop/html/layout
 
-pub fn index(state: ItemListState) -> String {
-  [item_list.views(state)]
-  |> layout.layout("Webshop", "buy some items")
+pub fn index(
+  item_list_state: ItemListState,
+  header_state: HeaderState,
+) -> String {
+  [item_list.views(item_list_state)]
+  |> layout.layout("Webshop", "buy some items", header_state)
 }
 
-pub fn index_with_username(username: String, state: ItemListState) -> String {
-  [item_list.views(state)]
-  |> layout.layout("Webshop", "hello, " <> username <> "! let's buy some items")
+pub fn index_with_username(
+  username: String,
+  item_list_state: ItemListState,
+  header_state: HeaderState,
+) -> String {
+  [item_list.views(item_list_state)]
+  |> layout.layout(
+    "Webshop",
+    "hello, " <> username <> "! let's buy some items",
+    header_state,
+  )
 }
 
 fn login_form() -> element.Element(a) {
@@ -42,22 +55,35 @@ fn login_form() -> element.Element(a) {
 
 pub fn login() -> String {
   [login_form()]
-  |> layout.layout("Webshop - Login", "please log in")
+  |> layout.layout("Webshop - Login", "please log in", header_state.LoggedOut)
 }
 
-pub fn item(item: types.Item) -> String {
+pub fn item(item: types.Item, header_state: HeaderState) -> String {
   [item_display.view(item)]
-  |> layout.layout("Webshop - Item", item.name)
+  |> layout.layout("Webshop - Item", item.name, header_state)
+}
+
+pub fn shopping_cart(username username: String, cart cart: Cart) -> String {
+  [shopping_cart.view(username, cart)]
+  |> layout.layout(
+    "Webshop - Shopping cart",
+    "dein bisheriger einkauf",
+    header_state.LoggedIn(username:, cart:),
+  )
 }
 
 pub fn invalid_login() -> String {
   [html.p([], [html.text("Nutzername oder Passwort falsch.")])]
-  |> layout.layout("Webshop - Invalid login", "")
+  |> layout.layout("Webshop - Invalid login", "", header_state.LoggedOut)
 }
 
 pub fn register() -> String {
   [
     form.register_form(register_state.new()),
   ]
-  |> layout.layout("Webshop - Register", "Please register.")
+  |> layout.layout(
+    "Webshop - Register",
+    "Please register.",
+    header_state.LoggedOut,
+  )
 }

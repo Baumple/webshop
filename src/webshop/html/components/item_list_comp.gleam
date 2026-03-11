@@ -130,6 +130,7 @@ pub fn views(state: ItemListState) -> element.Element(a) {
     searchbar(index, item_count, current_query, categories),
     html.div([class("item-views")], list.map(items, item_view)),
   ])
+
 }
 
 fn cost_view(cost: Int) -> element.Element(a) {
@@ -162,6 +163,7 @@ fn item_view(item: PartialItem) -> element.Element(a) {
       html.a(
         [
           class("item-view-cart"),
+          attribute("hx-target", ".header-comp"),
           attribute("hx-post", "/cart/add/" <> id),
         ],
         [

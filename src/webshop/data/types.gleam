@@ -1,7 +1,9 @@
 import cake/insert
 import gleam/dict
 import gleam/dynamic/decode.{type Decoder}
+import gleam/list
 import gleam/option
+import gleam/time/timestamp
 
 fn name_pair_decoder() -> Decoder(#(String, String)) {
   use language <- decode.subfield(["language", "name"], decode.string)
@@ -177,5 +179,30 @@ pub fn customer_to_insert_row(c: Customer) -> insert.InsertRow {
 }
 
 pub type Cart {
-  Cart(username: String, items: List(PartialItem))
+  Cart(username: String, items: List(#(PartialItem, Int)))
 }
+
+pub fn get_cart_item_count(cart: Cart) -> Int {
+  list.fold(cart.items, 0, fn(acc, item) {
+    let #(_, count) = item
+    acc + count
+  })
+}
+
+pub type Invoice {
+  Invoice(
+    username: String,
+    date: timestamp.Timestamp,
+    entries: List(InvoiceEntry),
+  )
+}
+
+pub type InvoiceEntry {
+  InvoiceEntry(
+    item_id: Int,
+    item_name: String,
+    price_per_item: Int,
+    amount: Int,
+  )
+}
+

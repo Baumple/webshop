@@ -1,11 +1,7 @@
-import cake/adapter/sqlite
-import cake/insert
-import cake/select
-import cake/where
-import gleam/dynamic/decode
 import gleam/erlang/process
 import gleam/result
 import sqlight.{type Connection}
+import webshop/data/db/invoices
 import wisp
 
 import webshop/data/db/category
@@ -88,7 +84,24 @@ const scheme = "
   CREATE TABLE IF NOT EXISTS cart_items (
     username TEXT NOT NULL REFERENCES customers(username),
     item_id  INT NOT NULL REFERENCES items(id),
-    count    INT NOT NULL CHECK (count > 0)
+    count    INT NOT NULL CHECK (count > 0),
+    PRIMARY KEY (username, item_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS invoices (
+    id       INTEGER PRIMARY KEY,
+    username TEXT NOT NULL REFERENCES customers(username),
+    date     TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS invoice_entries (
+    invoice_id     INTEGER NOT NULL REFERENCES invoices(id),
+    item_id        INTEGER NOT NULL REFERENCES items(id),
+    item_name      TEXT NOT NULL,
+    price_per_item INTEGER NOT NULL,
+    amount         INTEGER NOT NULL,
+
+    PRIMARY KEY (invoice_id, item_id)
   );
 
 "
@@ -107,54 +120,28 @@ fn update_data(db: Connection) -> Result(Nil, WebshopInitError) {
   Ok(Nil)
 }
 
-pub fn get_username_password_hash(
-  db: Connection,
-  username: String,
-) -> DBResult(String) {
-  customer.get_username_password_hash(db, username)
-}
+pub const get_username_password_hash = customer.get_username_password_hash
 
-pub fn username_exists(
-  db: Connection,
-  username: String,
-) -> Result(Bool, sqlight.Error) {
-  customer.username_exists(db, username)
-}
+pub const username_exists = customer.username_exists
 
-pub fn insert_customer(
-  db: Connection,
-  customer: Customer,
-) -> Result(Nil, sqlight.Error) {
-  customer.insert_customer(customer, db)
-}
+pub const insert_customer = customer.insert_customer
 
-pub fn get_items(
-  db: Connection,
-  query: query.Query,
-  offset offset: Int,
-  count limit: Int,
-) -> Result(List(types.PartialItem), sqlight.Error) {
-  items.get_partial_items_range(db, query, offset:, count: limit)
-}
+pub const get_items = items.get_partial_items_range
 
-pub fn get_item_by_id(db: Connection, id: Int) -> db_result.SqlResult(Item) {
-  items.get_item_by_id(db, id)
-}
+pub const get_item_by_id = items.get_item_by_id
 
-pub fn get_item_count(
-  db: Connection,
-  query: query.Query,
-) -> Result(Int, sqlight.Error) {
-  items.get_item_count(db, query)
-}
+pub const get_item_count = items.get_item_count
 
-pub fn get_categories(db: Connection) {
-  category.get_categories(db)
-}
+pub const get_categories = category.get_categories
 
-pub fn get_user_cart(
-  db: Connection,
-  username: String,
-) -> Result(types.Cart, sqlight.Error) {
-  items.get_cart_items(db, username)
-}
+pub const get_user_cart = items.get_cart_items
+
+pub const add_item_to_cart = items.add_item_to_cart
+
+pub const remove_item_from_cart = items.remove_item_from_cart
+
+pub const delete_item_from_cart = items.delete_item_from_cart
+
+pub const clear_item_cart = items.clear_cart
+
+pub const insert_invoice = invoices.insert_invoice

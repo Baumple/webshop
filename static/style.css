@@ -33,8 +33,24 @@ html {
 header {
   margin-left: 2em;
   display: grid;
-  max-height: 4em;
-  grid-template-columns: auto 1fr;
+  height: 4em;
+  grid-template-columns: auto 1fr 0.2fr;
+}
+
+.header-comp {
+  display: flex;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  height: 4em;
+
+  padding: 0;
+  margin: 0;
+}
+
+.shopping-icon>svg, 
+.login-icon>svg {
+  height: 60%;
 }
 
 header>* {
@@ -444,6 +460,56 @@ p, h4 {
   .cart-button {
     width: 100%;
   }
+}
+
+.cart-view {
+  margin-left: auto;
+  margin-right: auto;
+  width: 90%;
+
+  text-align: center;
+}
+
+.cart-entries {
+  width: 100%;
+}
+
+.cart-entry {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: 0.1fr 1fr 0.1fr;
+
+  border: solid 1px;
+  border-top-left-radius: 50px;
+  border-bottom-left-radius: 50px;
+  border-top-right-radius: 50px;
+  border-bottom-right-radius: 50px;
+
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.cart-entry-info {
+  border-left: solid 1px;
+  border-right: solid 1px;
+  padding-left: 1em;
+  padding-left: 1em;
+
+  display: grid;
+  grid-template-columns: 1fr 0.2fr 0.2fr;
+}
+
+.cart-entry-info>* {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.cart-entry-button {
+  border: none;
+  background: inherit;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 @media screen {

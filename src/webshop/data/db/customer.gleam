@@ -54,8 +54,8 @@ pub fn username_exists(
 }
 
 pub fn insert_customer(
-  customer: Customer,
   db: Connection,
+  customer: Customer,
 ) -> Result(Nil, sqlight.Error) {
   insert.from_records(
     table_name: "customers",

@@ -6,6 +6,7 @@ import gleam/result
 import gleam/time/duration
 import webshop/data/db/db_result
 import webshop/data/db/query
+import webshop/html/component_states/header_state
 import webshop/html/component_states/item_list_state
 import webshop/router/middleware
 import webshop/sessions
@@ -24,7 +25,7 @@ fn handle_get(request: Request, continue) -> Response {
   }
 }
 
-pub fn handle(ctx: Context, request: Request) -> Response {
+pub fn handle(request: Request, ctx: Context) -> Response {
   use <- handle_get(request)
   use formdata <- wisp.require_form(request)
   let result = {
@@ -94,7 +95,15 @@ fn create_session(request: Request, ctx: Context, username: String) -> Response 
       categories:,
     )
 
-  wisp.html_response(pages.index_with_username(username, state), 200)
+  use cart <- middleware.get_cart(ctx, username)
+  wisp.html_response(
+    pages.index_with_username(
+      username,
+      state,
+      header_state.LoggedIn(username:, cart:),
+    ),
+    200,
+  )
   |> wisp.set_cookie(
     request: request,
     name: "SESSIONID",

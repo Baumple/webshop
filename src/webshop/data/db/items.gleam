@@ -1,8 +1,10 @@
 import cake/adapter/sqlite
 import cake/combined
+import cake/delete
 import cake/insert
 import cake/join
 import cake/select
+import cake/update
 import cake/where
 import gleam/bool
 import gleam/dict
@@ -371,20 +373,101 @@ pub fn get_item_by_id(db: Connection, id: Int) -> SqlResult(Item) {
   ))
 }
 
+fn cart_item_decoder() -> decode.Decoder(#(PartialItem, Int)) {
+  use partial_item <- decode.then(partial_item_decoder())
+  use count <- decode.field(list.length(partial_item_cols), decode.int)
+  decode.success(#(partial_item, count))
+}
+
 pub fn get_cart_items(
   db: Connection,
   username: String,
 ) -> Result(types.Cart, sqlight.Error) {
   select.new()
-  |> select.select_cols(partial_item_cols)
-  |> select.from_table(name: "carts")
+  |> select.select_cols(list.append(partial_item_cols, ["cart_items.count"]))
+  |> select.from_table(name: "cart_items")
   |> select.join(join.inner(
     join.table("items"),
     alias: "items",
-    on: where.eq(where.col("carts.item_id"), where.col("items.id")),
+    on: where.eq(where.col("cart_items.item_id"), where.col("items.id")),
   ))
-  |> select.where(where.eq(where.col("carts.username"), where.string(username)))
+  |> select.where(where.eq(
+    where.col("cart_items.username"),
+    where.string(username),
+  ))
   |> select.to_query()
-  |> sqlite.run_read_query(partial_item_decoder(), db)
+  |> sqlite.run_read_query(cart_item_decoder(), db)
   |> result.map(types.Cart(username:, items: _))
+}
+
+pub fn add_item_to_cart(
+  db: Connection,
+  username: String,
+  item_id: Int,
+) -> Result(Nil, sqlight.Error) {
+  insert.from_values(
+    table_name: "cart_items",
+    columns: [
+      "username",
+      "item_id",
+      "count",
+    ],
+    values: [
+      insert.row([
+        insert.string(username),
+        insert.int(item_id),
+        insert.int(1),
+      ]),
+    ],
+  )
+  |> insert.on_columns_conflict_update(
+    columns: ["username", "item_id"],
+    where: where.is_true(where.true()),
+    update: update.new()
+      |> update.set(update.set_expression("count", "count + 1")),
+  )
+  |> insert.to_query()
+  |> sqlite.run_write_query(decode.dynamic, db)
+  |> result.replace(Nil)
+}
+
+pub fn remove_item_from_cart(
+  db: Connection,
+  username: String,
+  item_id: Int,
+) -> Result(Nil, sqlight.Error) {
+  update.new()
+  |> update.table("cart_items")
+  |> update.set(update.set_expression("count", "count - 1"))
+  |> update.where(where.eq(where.col("username"), where.string(username)))
+  |> update.where(where.eq(where.col("item_id"), where.int(item_id)))
+  |> update.to_query()
+  |> sqlite.run_write_query(decode.dynamic, db)
+  |> result.replace(Nil)
+}
+
+pub fn delete_item_from_cart(
+  db: Connection,
+  username: String,
+  item_id: Int,
+) -> Result(Nil, sqlight.Error) {
+  delete.new()
+  |> delete.table("cart_items")
+  |> delete.where(where.eq(where.col("username"), where.string(username)))
+  |> delete.where(where.eq(where.col("item_id"), where.int(item_id)))
+  |> delete.to_query()
+  |> sqlite.run_write_query(decode.dynamic, db)
+  |> result.replace(Nil)
+}
+
+pub fn clear_cart(
+  db: Connection,
+  username: String,
+) -> Result(Nil, sqlight.Error) {
+  delete.new()
+  |> delete.table("cart_items")
+  |> delete.where(where.eq(where.col("username"), where.string(username)))
+  |> delete.to_query()
+  |> sqlite.run_write_query(decode.dynamic, db)
+  |> result.replace(Nil)
 }

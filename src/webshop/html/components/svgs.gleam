@@ -113,3 +113,78 @@ pub fn arrow_left() -> element.Element(a) {
     ],
   )
 }
+
+pub fn cart() -> element.Element(a) {
+  svg.svg(
+    [
+      attribute("data-darkreader-inline-fill", ""),
+      attribute(
+        "style",
+        "--darkreader-inline-fill: var(--darkreader-background-4af262, #0b9c3f);",
+      ),
+      attribute.id("memory-cart"),
+      attribute("xmlns", "http://www.w3.org/2000/svg"),
+      attribute("viewBox", "0 0 22 22"),
+      attribute("fill", "#4AF262"),
+    ],
+    [
+      svg.g(
+        [attribute("stroke-width", "0"), attribute.id("SVGRepo_bgCarrier")],
+        [],
+      ),
+      svg.g(
+        [
+          attribute("stroke-linejoin", "round"),
+          attribute("stroke-linecap", "round"),
+          attribute.id("SVGRepo_tracerCarrier"),
+        ],
+        [],
+      ),
+      svg.g([attribute.id("SVGRepo_iconCarrier")], [
+        svg.path([
+          attribute(
+            "d",
+            "M19 14V16H6V15H5V11H4V8H3V3H1V1H5V4H21V8H20V11H19V12H7V14H19M5 7H6V10H18V7H19V6H5V7M7 17H9V18H10V20H9V21H7V20H6V18H7V17M15 17H17V18H18V20H17V21H15V20H14V18H15V17Z",
+          ),
+        ]),
+      ]),
+    ],
+  )
+}
+
+pub fn login() -> element.Element(a) {
+  svg.svg(
+    [
+      attribute("data-darkreader-inline-fill", ""),
+      attribute(
+        "style",
+        "--darkreader-inline-fill: var(--darkreader-background-4af262, #0b9c3f);",
+      ),
+      attribute("xmlns", "http://www.w3.org/2000/svg"),
+      attribute("viewBox", "0 0 24 24"),
+      attribute("fill", "#4AF262"),
+    ],
+    [
+      svg.g(
+        [attribute("stroke-width", "0"), attribute.id("SVGRepo_bgCarrier")],
+        [],
+      ),
+      svg.g(
+        [
+          attribute("stroke-linejoin", "round"),
+          attribute("stroke-linecap", "round"),
+          attribute.id("SVGRepo_tracerCarrier"),
+        ],
+        [],
+      ),
+      svg.g([attribute.id("SVGRepo_iconCarrier")], [
+        svg.path([
+          attribute(
+            "d",
+            "M20,21V3H13a1,1,0,0,1,0-2h8a1,1,0,0,1,1,1V22a1,1,0,0,1-1,1H13a1,1,0,0,1,0-2ZM2,12a1,1,0,0,0,1,1H14.586l-2.293,2.293a1,1,0,1,0,1.414,1.414l4-4a1,1,0,0,0,0-1.414l-4-4a1,1,0,1,0-1.414,1.414L14.586,11H3A1,1,0,0,0,2,12Z",
+          ),
+        ]),
+      ]),
+    ],
+  )
+}

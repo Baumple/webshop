@@ -102,7 +102,6 @@ fn validate_username(ctx: Context, formdata: FormData) -> Response {
   }
 }
 
-// WARN: NOT IMPLEMENTED
 fn prevent_duplicate_usernames(
   ctx: Context,
   username: String,

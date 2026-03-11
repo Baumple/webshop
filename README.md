@@ -53,8 +53,9 @@ die bequeme Library `argus` gibt.
 
 
 # TODO:
+- rename header_state -> 'user_state'
 - invoices
-- duplicate username
-- form can be sent with invalid data
-- register confirmation
 - ip ratelimiting
+
+- form can be sent with invalid data
+- register confirmatio

@@ -1,3 +1,4 @@
+import dream_ets/table
 import gleam/int
 import gleam/list
 import gleam/option
@@ -9,35 +10,34 @@ import webshop/data/db/db_result
 import webshop/data/db/query
 import webshop/data/types
 import webshop/error
-import webshop/html/pages
 import webshop/sessions
 
-/// requires a cookie to be set
-fn require_session_id_cookie(
+fn get_session_or_none(
+  ctx: Context,
   request: Request,
-  continue: fn(String) -> Response,
-) -> Response {
+) -> Result(option.Option(sessions.Session), table.EtsError) {
   case wisp.get_cookie(request, "SESSIONID", wisp.PlainText) {
-    Error(Nil) ->
-      wisp.ok()
-      |> wisp.html_body(pages.login())
-    Ok(session_id) -> continue(session_id)
+    Ok(session_id) ->
+      case sessions.get(ctx.sessions, session_id) {
+        Ok(maybe_session) -> Ok(maybe_session)
+        Error(err) -> Error(err)
+      }
+    Error(Nil) -> Ok(option.None)
   }
 }
 
-/// Requires a valid session cookie to be set. If it is not set or otherwise
-/// invalid, redirect the user to the login page. 
-///
-/// If it is set, the session id is passed to the callback parameter.
-pub fn require_session_id(
+/// Requires a user to be logged in, otherwise redirects them to login.
+pub fn require_session(
   ctx: Context,
   request: Request,
-  continue: fn(String) -> Response,
+  continue: fn(sessions.Session) -> Response,
 ) -> Response {
-  use session_id <- require_session_id_cookie(request)
-  case sessions.exists(ctx.sessions, session_id) {
-    Ok(True) -> continue(session_id)
-    Ok(False) -> wisp.html_response(pages.login(), 200)
+  let session = get_session_or_none(ctx, request)
+  case session {
+    Ok(option.Some(session)) -> continue(session)
+    Ok(option.None) ->
+      wisp.response(200)
+      |> wisp.set_header("Hx-Redirect", "/login")
     Error(err) -> error.log_ets_error(err)
   }
 }
@@ -49,13 +49,9 @@ pub fn get_session_if_exists(
   request: Request,
   continue,
 ) -> Response {
-  case wisp.get_cookie(request, "SESSIONID", wisp.PlainText) {
-    Ok(session_id) ->
-      case sessions.get(ctx.sessions, session_id) {
-        Ok(session) -> continue(session)
-        Error(err) -> error.log_ets_error(err)
-      }
-    Error(Nil) -> continue(option.None)
+  case get_session_or_none(ctx, request) {
+    Ok(session) -> continue(session)
+    Error(err) -> error.log_ets_error(err)
   }
 }
 
@@ -70,16 +66,6 @@ pub fn get_partial_items(
     Ok(items) -> continue(items)
     Error(err) -> error.log_sql_error(err)
   }
-}
-
-pub fn get_partial_items_query(
-  ctx: Context,
-  query: query.Query,
-  offset offset: Int,
-  limit limit: Int,
-  continue continue: fn(List(types.PartialItem)) -> Response,
-) {
-  todo
 }
 
 pub fn require_item(ctx: Context, id: Int, continue) -> Response {
@@ -114,6 +100,63 @@ pub fn get_categories(
 ) -> Response {
   case db.get_categories(ctx.db) {
     Ok(categories) -> continue(categories)
+    Error(err) -> error.log_sql_error(err)
+  }
+}
+
+pub fn get_cart(ctx: Context, username: String, continue) -> Response {
+  case db.get_user_cart(ctx.db, username) {
+    Ok(cart) -> continue(cart)
+    Error(err) -> error.log_sql_error(err)
+  }
+}
+
+pub fn require_int_id(id: String, continue) -> Response {
+  case int.parse(id) {
+    Ok(id) -> continue(id)
+    Error(Nil) -> wisp.bad_request("param `id` invalid")
+  }
+}
+
+pub fn require_add_item_to_cart(
+  ctx: Context,
+  username: String,
+  item_id: Int,
+  continue,
+) -> Response {
+  case db.add_item_to_cart(ctx.db, username, item_id) {
+    Ok(Nil) -> continue()
+    Error(err) -> error.log_sql_error(err)
+  }
+}
+
+pub fn require_remove_item_from_cart(
+  ctx: Context,
+  username: String,
+  item_id: Int,
+  continue,
+) -> Response {
+  case db.remove_item_from_cart(ctx.db, username, item_id) {
+    Ok(Nil) -> continue()
+    Error(err) -> error.log_sql_error(err)
+  }
+}
+
+pub fn require_delete_item_from_cart(
+  ctx: Context,
+  username: String,
+  item_id: Int,
+  continue,
+) {
+  case db.delete_item_from_cart(ctx.db, username, item_id) {
+    Ok(Nil) -> continue()
+    Error(err) -> error.log_sql_error(err)
+  }
+}
+
+pub fn require_clear_cart(ctx: Context, username: String, continue) {
+  case db.clear_item_cart(ctx.db, username) {
+    Ok(Nil) -> continue()
     Error(err) -> error.log_sql_error(err)
   }
 }

@@ -122,7 +122,7 @@ fn handle_get(request: Request, continue: fn() -> Response) {
   }
 }
 
-pub fn handle(ctx: Context, request: Request) -> Response {
+pub fn handle(request: Request, ctx: Context) -> Response {
   case wisp.path_segments(request) {
     ["users"] -> handle_register(ctx, request)
     ["users", "logout"] -> handle_logout(ctx, request)
@@ -132,8 +132,8 @@ pub fn handle(ctx: Context, request: Request) -> Response {
 }
 
 fn handle_logout(ctx: Context, request: Request) -> Response {
-  use session_id <- middleware.require_session_id(ctx, request)
-  case sessions.remove(ctx.sessions, session_id) {
+  use session <- middleware.require_session(ctx, request)
+  case sessions.remove(ctx.sessions, session.id) {
     Ok(_) -> pages.login() |> wisp.html_response(200)
     Error(err) -> error.log_ets_error(err)
   }
