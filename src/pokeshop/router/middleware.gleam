@@ -37,7 +37,7 @@ pub fn require_session(
     Ok(option.Some(session)) -> continue(session)
     Ok(option.None) ->
       wisp.response(200)
-      |> wisp.set_header("Hx-Redirect", "/login")
+      |> wisp.set_header("HX-Redirect", "/login")
     Error(err) -> error.log_ets_error(err)
   }
 }

@@ -77,7 +77,7 @@ fn add_to_cart_button(id: Int) -> element.Element(a) {
     html.a(
       [
         attribute("hx-post", "/cart/add/" <> int.to_string(id)),
-        attribute("hx-target", "#shopping-cart"),
+        attribute("hx-target", ".header-comp"),
         class("cart-button-image"),
       ],
       [svgs.shopping_cart()],

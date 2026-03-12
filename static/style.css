@@ -194,7 +194,7 @@ button {
 }
 
 .item-view {
-    border: solid;
+    border: solid 1px;
     border-radius: 50px;
 
     min-height: 4em;
@@ -231,13 +231,14 @@ button {
 
     padding-right: 1em;
 
-    border-left: solid;
+    border-left: solid 1px;
     border-top-right-radius: 50px;
     border-bottom-right-radius: 50px;
 
     margin-top: 0;
     margin-bottom: 0;
     cursor: pointer;
+    background: #4AF26222;
 }
 
 .item-view-cart:active,
@@ -396,7 +397,7 @@ p, h4 {
   grid-template-columns: 0.1fr 1fr 0.1fr 0.1fr;
   margin-bottom: 1em;
 
-  border: solid 1px;
+  border: solid;
   border-radius: 50px;
 }
 
@@ -410,8 +411,20 @@ p, h4 {
   margin: 0;
   
   display: grid;
-  grid-template-columns: 1fr 0.2fr;
+  grid-template-columns: 1fr 0.1fr 0.1fr;
   grid-gap: 2em;
+}
+
+select {
+  border-bottom: solid 1px;
+}
+
+.search-submit::before {
+  content: ">";
+}
+
+.search-submit::after {
+  content: "<";
 }
 
 .page-arrow {

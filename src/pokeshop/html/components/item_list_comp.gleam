@@ -37,23 +37,32 @@ fn searchbar(
       ],
     ),
 
-    html.form([class("search-form"), attribute.action("/")], [
-      html.div(
-        [
-          class("terminal-input"),
-        ],
-        [
-          html.input([
-            class("search-input"),
-            attribute.type_("text"),
-            attribute.name("searchterm"),
-            attribute.placeholder("Suchen"),
-            attribute.value(search_term),
-          ]),
-        ],
-      ),
-      category_select_view(categories, query.category),
-    ]),
+    html.form(
+      [
+        class("search-form"),
+        attribute.action("/"),
+      ],
+      [
+        html.div(
+          [
+            class("terminal-input"),
+          ],
+          [
+            html.input([
+              class("search-input"),
+              attribute.type_("text"),
+              attribute.name("searchterm"),
+              attribute.placeholder("Suchen"),
+              attribute.value(search_term),
+            ]),
+          ],
+        ),
+        category_select_view(categories, query.category),
+        html.button([class("search-submit"), attribute.type_("submit")], [
+          text("Suchen"),
+        ]),
+      ],
+    ),
 
     page_view(index, item_count),
 
@@ -103,14 +112,11 @@ fn category_select_view(
     attribute.id("category"),
     attribute.name("category"),
   ]
-
   let options = list.map(categories, option_view(_, selected))
-
   let options = [
     html.option([attribute.value("")], "-- keine Auswahl --"),
     ..options
   ]
-
   html.div([class("category-search")], [
     html.label([attribute.for("#category")], [text("Kategoriefilter:")]),
     html.select(attrs, options),
@@ -130,7 +136,6 @@ pub fn views(state: ItemListState) -> element.Element(a) {
     searchbar(index, item_count, current_query, categories),
     html.div([class("item-views")], list.map(items, item_view)),
   ])
-
 }
 
 fn cost_view(cost: Int) -> element.Element(a) {
